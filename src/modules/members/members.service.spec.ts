@@ -61,12 +61,29 @@ describe('MembersService', () => {
     );
   });
 
-  it('listActiveSubscribed filters by status and subscription', async () => {
+  it('listActiveSubscribed filters by status, subscription and blacklist', async () => {
     await service.listActiveSubscribed(10n);
 
     expect(prisma.chatMember.findMany).toHaveBeenCalledWith({
-      where: { chatId: 10n, status: 'active', subscribed: true },
+      where: {
+        chatId: 10n,
+        status: 'active',
+        subscribed: true,
+        blacklisted: false,
+      },
       include: { user: true },
     });
+  });
+
+  it('setBlacklisted ensures user and upserts the flag', async () => {
+    await service.setBlacklisted(10n, { id: 20n }, true);
+
+    expect(prisma.user.upsert).toHaveBeenCalled();
+    expect(prisma.chatMember.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: { blacklisted: true },
+        create: expect.objectContaining({ blacklisted: true }),
+      }),
+    );
   });
 });

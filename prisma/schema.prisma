@@ -41,10 +41,11 @@ model User {
 model ChatMember {
   chatId     BigInt
   userId     BigInt
-  status     String    @default("active") // active | left
-  subscribed Boolean   @default(true)
-  joinedAt   DateTime  @default(now())
-  leftAt     DateTime?
+  status      String    @default("active") // active | left
+  subscribed  Boolean   @default(true)
+  blacklisted Boolean   @default(false) // исключён из зова
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
 
   chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

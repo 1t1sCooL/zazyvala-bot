@@ -27,6 +27,7 @@ CREATE TABLE "ChatMember" (
     "userId" BIGINT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'active',
     "subscribed" BOOLEAN NOT NULL DEFAULT true,
+    "blacklisted" BOOLEAN NOT NULL DEFAULT false,
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "leftAt" TIMESTAMP(3),
 

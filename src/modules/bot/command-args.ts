@@ -9,6 +9,14 @@ export function commandArg(ctx: Context, command: string): string {
   return text.replace(new RegExp(`^/${command}(@\\w+)?\\s*`, 'i'), '').trim();
 }
 
+/** Пользователь из сообщения, на которое ответили командой (или undefined). */
+export function replyTarget(ctx: Context): TgUser | undefined {
+  const message = ctx.message as
+    | { reply_to_message?: { from?: TgUser } }
+    | undefined;
+  return message?.reply_to_message?.from;
+}
+
 /** Преобразует Telegram-пользователя в вход для MembersService.ensureUser. */
 export function fromUserInput(user: TgUser): EnsureUserInput {
   return {

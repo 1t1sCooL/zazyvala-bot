@@ -13,6 +13,7 @@ import { TagGroupsModule } from '../tag-groups';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
+import { SettingsUpdate } from './settings.update';
 import { SummonUpdate } from './summon.update';
 import { TagGroupsUpdate } from './tag-groups.update';
 
@@ -62,6 +63,7 @@ import { TagGroupsUpdate } from './tag-groups.update';
     SummonUpdate,
     AssistantsUpdate,
     TagGroupsUpdate,
+    SettingsUpdate,
     {
       provide: APP_FILTER,
       useClass: TelegrafExceptionFilter,

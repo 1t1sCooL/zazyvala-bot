@@ -15,7 +15,9 @@ const HELP =
   '/addhelper, /delhelper — управление помощниками (ответом на сообщение; только админ)\n' +
   '/callpolicy — кто может звать: all | assistants | admins (меняет админ)\n' +
   '/groups — группы тегов; /newgroup, /delgroup (админ); /joingroup, /leavegroup\n' +
-  '/call <группа> — позвать только участников группы\n\n' +
+  '/call <группа> — позвать только участников группы\n' +
+  '/settings — настройки чата; /setheader, /setcooldown, /setbatch (админ)\n' +
+  '/ignore, /unignore — исключить/вернуть участника в зов (reply, админ)\n\n' +
   'Добавьте меня в группу: я регистрирую участников автоматически, а /call созывает их пачками.';
 
 /**

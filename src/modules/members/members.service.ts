@@ -94,11 +94,38 @@ export class MembersService {
     return member;
   }
 
-  /** Активные подписанные участники чата — кандидаты для зова. */
+  /** Активные подписанные участники чата (кроме blacklist) — кандидаты для зова. */
   async listActiveSubscribed(chatId: bigint): Promise<ChatMemberWithUser[]> {
     return this.prisma.chatMember.findMany({
-      where: { chatId, status: 'active', subscribed: true },
+      where: {
+        chatId,
+        status: 'active',
+        subscribed: true,
+        blacklisted: false,
+      },
       include: { user: true },
     });
+  }
+
+  /** Включает/выключает исключение участника из зова (blacklist). */
+  async setBlacklisted(
+    chatId: bigint,
+    user: EnsureUserInput,
+    value: boolean,
+  ): Promise<void> {
+    await this.ensureUser(user);
+    await this.prisma.chatMember.upsert({
+      where: { chatId_userId: { chatId, userId: user.id } },
+      update: { blacklisted: value },
+      create: {
+        chatId,
+        userId: user.id,
+        status: 'active',
+        blacklisted: value,
+      },
+    });
+    this.logger.debug(
+      `Set blacklisted=${value} for member ${user.id} in chat ${chatId}`,
+    );
   }
 }
