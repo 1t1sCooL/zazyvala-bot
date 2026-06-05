@@ -31,5 +31,6 @@ COPY --from=builder /app/dist ./dist
 USER node
 EXPOSE 3000
 
-# Применяем миграции, затем стартуем приложение.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Синхронизируем схему БД (идемпотентно, без истории миграций — этап прототипа),
+# затем стартуем приложение.
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/main"]

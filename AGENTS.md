@@ -45,8 +45,8 @@ zazyvala-bot/
 │       ├── filters/           # TelegrafExceptionFilter
 │       └── utils/             # sendWithRetry (заготовка под 429/flood)
 ├── test/                     # E2E-тесты (health.e2e-spec.ts) + jest-e2e.json
-├── prisma/                    # schema.prisma, migrations/, seed.ts
-├── Dockerfile                 # multi-stage образ (prisma migrate deploy + node dist/main)
+├── prisma/                    # schema.prisma, seed.ts (db push на этапе прототипа)
+├── Dockerfile                 # multi-stage образ (prisma db push + node dist/main)
 ├── k8s/                       # deployment.yaml, secret.example.yaml, postgres.yaml
 ├── .github/workflows/         # ci.yml (lint/build/test) + deploy.yml (ghcr + kubectl)
 ├── .ai-factory/              # Контекст для AI: описание, архитектура, роадмап, правила, планы

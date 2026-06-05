@@ -133,12 +133,15 @@ PostgreSQL + [Prisma](https://www.prisma.io/). Схема — в [`prisma/schema
 # 1. Укажите DATABASE_URL в .env
 # 2. Сгенерируйте клиент
 npm run db:generate
-# 3. Примените миграции
-npm run db:migrate:dev      # локальная разработка (создаёт/применяет миграции)
-npm run db:migrate          # прод: prisma migrate deploy (применяет готовые миграции)
+# 3. Синхронизируйте схему с БД (этап прототипа — без истории миграций)
+npm run db:push
 # 4. (опционально) демо-данные
 npm run db:seed
 ```
+
+> На этапе активной разработки схема синхронизируется через `prisma db push`
+> (идемпотентно). При старте контейнера это делается автоматически. Когда схема
+> стабилизируется — перейдём на полноценные миграции (`prisma migrate`).
 
 Доступ к БД изолирован за `PrismaService` (модуль `src/prisma/`) — доменные сервисы внедряют его, а не `PrismaClient` напрямую.
 
@@ -152,7 +155,7 @@ npm run db:seed
 | `npm test` | Unit-тесты (Jest) |
 | `npm run test:e2e` | E2E-тесты |
 | `npm run db:generate` | Генерация Prisma Client |
-| `npm run db:migrate` | Применение миграций (прод) |
+| `npm run db:push` | Синхронизация схемы с БД (prisma db push) |
 | `npm run db:seed` | Сидинг демо-данных |
 
 ## CI / CD
@@ -162,7 +165,7 @@ npm run db:seed
 
 ## Деплой в Kubernetes
 
-Манифесты — в [`k8s/`](k8s/). Образ собирается из [`Dockerfile`](Dockerfile) (multi-stage; при старте выполняется `prisma migrate deploy`).
+Манифесты — в [`k8s/`](k8s/). Образ собирается из [`Dockerfile`](Dockerfile) (multi-stage; при старте выполняется `prisma db push` для синхронизации схемы).
 
 **Что нужно один раз настроить:**
 
