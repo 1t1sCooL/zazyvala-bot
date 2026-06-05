@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Command, Ctx, Update } from 'nestjs-telegraf';
 import { AssistantsService } from '../assistants';
+import { asLang, t } from '../i18n';
 import { SettingsService } from '../settings';
 import {
   CALL_POLICIES,
@@ -33,12 +34,13 @@ export class SummonUpdate {
     const from = ctx.from;
     if (!chat || !from) return;
     if (chat.type !== 'group' && chat.type !== 'supergroup') {
-      await ctx.reply('Команда /call работает только в групповом чате.');
+      await ctx.reply(t('ru', 'call_only_group'));
       return;
     }
 
     const chatId = BigInt(chat.id);
     const settings = await this.settings.getForChat(chatId);
+    const lang = asLang(settings.language);
 
     // Проверка прав на зов согласно политике чата.
     const [isAdmin, isAssistant] = await Promise.all([
@@ -48,8 +50,9 @@ export class SummonUpdate {
     if (!canSummon(settings.callPolicy, { isAdmin, isAssistant })) {
       this.logger.debug(`/call denied for ${from.id} in chat ${chatId}`);
       await ctx.reply(
-        `Звать может: ${describePolicy(settings.callPolicy)}. ` +
-          `Политику меняет админ: /callpolicy`,
+        t(lang, 'call_denied', {
+          policy: t(lang, `policy_${settings.callPolicy}`),
+        }),
       );
       return;
     }
@@ -78,18 +81,18 @@ export class SummonUpdate {
     switch (result.status) {
       case 'cooldown':
         await ctx.reply(
-          `Слишком часто. Попробуйте через ${result.retryAfterSec} сек.`,
+          t(lang, 'call_cooldown', { sec: result.retryAfterSec }),
         );
         break;
       case 'empty':
         await ctx.reply(
           group
-            ? `В группе «${group.name}» пока никого. Вступить: /joingroup ${group.name}`
-            : 'Некого звать — пусть участники напишут /join или просто что-нибудь в чат.',
+            ? t(lang, 'call_empty_group', { group: group.name })
+            : t(lang, 'call_empty'),
         );
         break;
       case 'no_group':
-        await ctx.reply('Такой группы нет. Список: /groups');
+        await ctx.reply(t(lang, 'call_no_group'));
         break;
       case 'ok':
         // Зов уже отправлен пачками — лишнего сообщения не добавляем.

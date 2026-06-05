@@ -1,24 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Ctx, Help, Start, Update } from 'nestjs-telegraf';
+import { asLang, t } from '../i18n';
+import { SettingsService } from '../settings';
 import { Context } from './context.interface';
-
-const WELCOME =
-  'Привет! Я «Зазывала» — зову всех участников группы одним сообщением.\n\n' +
-  'Добавь меня в групповой чат и используй /help, чтобы увидеть команды.';
-
-const HELP =
-  'Команды:\n' +
-  '/call <текст> — позвать всех подписанных участников (текст необязателен)\n' +
-  '/join — подписаться на зов\n' +
-  '/leave — отписаться от зова\n' +
-  '/helpers — список помощников\n' +
-  '/addhelper, /delhelper — управление помощниками (ответом на сообщение; только админ)\n' +
-  '/callpolicy — кто может звать: all | assistants | admins (меняет админ)\n' +
-  '/groups — группы тегов; /newgroup, /delgroup (админ); /joingroup, /leavegroup\n' +
-  '/call <группа> — позвать только участников группы\n' +
-  '/settings — настройки чата; /setheader, /setcooldown, /setbatch (админ)\n' +
-  '/ignore, /unignore — исключить/вернуть участника в зов (reply, админ)\n\n' +
-  'Добавьте меня в группу: я регистрирую участников автоматически, а /call созывает их пачками.';
 
 /**
  * Тонкий Telegram-хендлер: только разбирает апдейт и отвечает.
@@ -28,15 +12,27 @@ const HELP =
 export class BotUpdate {
   private readonly logger = new Logger(BotUpdate.name);
 
+  constructor(private readonly settings: SettingsService) {}
+
   @Start()
   async onStart(@Ctx() ctx: Context): Promise<void> {
     this.logger.debug(`/start from chat ${ctx.chat?.id}`);
-    await ctx.reply(WELCOME);
+    await ctx.reply(t(await this.lang(ctx), 'welcome'));
   }
 
   @Help()
   async onHelp(@Ctx() ctx: Context): Promise<void> {
     this.logger.debug(`/help from chat ${ctx.chat?.id}`);
-    await ctx.reply(HELP);
+    await ctx.reply(t(await this.lang(ctx), 'help'));
+  }
+
+  /** Язык чата: для групп — из настроек, для лички — ru по умолчанию. */
+  private async lang(ctx: Context): Promise<string> {
+    const chat = ctx.chat;
+    if (chat && (chat.type === 'group' || chat.type === 'supergroup')) {
+      const s = await this.settings.getForChat(BigInt(chat.id));
+      return asLang(s.language);
+    }
+    return 'ru';
   }
 }

@@ -31,7 +31,8 @@ zazyvala-bot/
 │   │   │   └── context.interface.ts
 │   │   ├── chats/             # ChatsService.ensureChat (+ index.ts публичный API)
 │   │   ├── members/          # MembersService: реестр участников, opt-in/opt-out
-│   │   ├── settings/         # SettingsService: ChatSettings + кулдаун
+│   │   ├── settings/         # SettingsService: ChatSettings, кулдаун, язык
+│   │   ├── i18n/             # словари RU/EN + t(lang,key,vars)
 │   │   ├── summon/           # SummonService + mention-builder + canSummon (ЯДРО зова)
 │   │   ├── assistants/       # AssistantsService: помощники + лимит
 │   │   ├── tag-groups/       # TagGroupsService: кастомные группы тегов

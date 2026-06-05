@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Command, Ctx, Update } from 'nestjs-telegraf';
+import { asLang, isLang, t } from '../i18n';
 import { MembersService } from '../members';
 import { SettingsService } from '../settings';
 import { describePolicy } from '../summon';
@@ -77,6 +78,33 @@ export class SettingsUpdate {
         ? `Размер пачки упоминаний: ${arg}.`
         : 'Укажите число от 1 до 10: /setbatch 5',
     );
+  }
+
+  @Command('setlang')
+  async onSetLang(@Ctx() ctx: Context): Promise<void> {
+    if (!isGroupChat(ctx) || !ctx.from) return;
+    const chatId = BigInt(ctx.chat!.id);
+    const arg = commandArg(ctx, 'setlang').toLowerCase();
+
+    if (!arg) {
+      const s = await this.settings.getForChat(chatId);
+      await ctx.reply(
+        t(s.language, 'lang_usage', { lang: asLang(s.language) }),
+      );
+      return;
+    }
+    if (!(await isChatAdmin(ctx.telegram, ctx.chat!.id, ctx.from.id))) {
+      const s = await this.settings.getForChat(chatId);
+      await ctx.reply(t(s.language, 'lang_admin_only'));
+      return;
+    }
+    if (!isLang(arg)) {
+      await ctx.reply(t('ru', 'lang_unknown'));
+      return;
+    }
+    await this.settings.setLanguage(chatId, arg);
+    this.logger.debug(`language=${arg} set in chat ${chatId}`);
+    await ctx.reply(t(arg, 'lang_set', { lang: arg }));
   }
 
   @Command('ignore')
