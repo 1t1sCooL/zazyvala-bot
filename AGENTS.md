@@ -34,6 +34,7 @@ zazyvala-bot/
 │   │   ├── settings/         # SettingsService: ChatSettings, кулдаун, язык
 │   │   ├── i18n/             # словари RU/EN + t(lang,key,vars)
 │   │   ├── admin/           # REST-админка (auth, stats, чаты, настройки, /admin/ui)
+│   │   ├── metrics/         # Prometheus /metrics (summons/errors + default)
 │   │   ├── summon/           # SummonService + mention-builder + canSummon (ЯДРО зова)
 │   │   ├── assistants/       # AssistantsService: помощники + лимит
 │   │   ├── tag-groups/       # TagGroupsService: кастомные группы тегов

@@ -1,4 +1,5 @@
 import { MembersService } from '../members';
+import { MetricsService } from '../metrics';
 import { SettingsService } from '../settings';
 import { TagGroupsService } from '../tag-groups';
 import { SummonService } from './summon.service';
@@ -27,10 +28,12 @@ describe('SummonService', () => {
     };
     tagGroups = { listMembersWithUsers: jest.fn() };
     telegram = { sendMessage: jest.fn().mockResolvedValue({}) };
+    const metrics = { incSummons: jest.fn() };
     service = new SummonService(
       members as unknown as MembersService,
       settings as unknown as SettingsService,
       tagGroups as unknown as TagGroupsService,
+      metrics as unknown as MetricsService,
     );
   });
 

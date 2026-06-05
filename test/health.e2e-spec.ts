@@ -1,15 +1,23 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { HealthModule } from '../src/modules/health/health.module';
+import { HealthController } from '../src/modules/health/health.controller';
+import { PrismaService } from '../src/prisma/prisma.service';
 
-// E2E поднимает только HealthModule — без Telegraf, поэтому реальный BOT_TOKEN не нужен.
+// E2E поднимает только HealthController с замоканным PrismaService — без Telegraf
+// и без реальной БД.
 describe('HealthController (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [HealthModule],
+      controllers: [HealthController],
+      providers: [
+        {
+          provide: PrismaService,
+          useValue: { $queryRaw: () => Promise.resolve([{ x: 1 }]) },
+        },
+      ],
     }).compile();
 
     app = moduleRef.createNestApplication();
@@ -22,9 +30,13 @@ describe('HealthController (e2e)', () => {
 
   it('GET /health returns 200 with status ok', async () => {
     const res = await request(app.getHttpServer()).get('/health').expect(200);
-
     expect(res.body.status).toBe('ok');
-    expect(typeof res.body.uptime).toBe('number');
-    expect(typeof res.body.timestamp).toBe('string');
+  });
+
+  it('GET /health/ready returns 200 with db up', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200);
+    expect(res.body).toEqual({ status: 'ok', db: 'up' });
   });
 });

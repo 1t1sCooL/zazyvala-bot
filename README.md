@@ -219,6 +219,13 @@ sed "s|IMAGE_TAG|$(git rev-parse HEAD)|g" k8s/deployment.yaml | kubectl apply -f
 
 > Деплой работает в режиме **polling** (1 реплика, strategy `Recreate` — обязательно, иначе два инстанса конфликтуют на getUpdates). Для webhook-режима понадобится Ingress + публичный домен и `BOT_MODE=webhook`.
 
+## Наблюдаемость и надёжность
+
+- **Liveness:** `GET /health` — процесс жив.
+- **Readiness:** `GET /health/ready` — проверка БД (`SELECT 1`); `503` если БД недоступна. В k8s readiness-проба указывает на `/health/ready`.
+- **Метрики:** `GET /metrics` — Prometheus-формат: дефолтные метрики Node + `zazyvala_summons_total` и `zazyvala_telegram_errors_total`.
+- **Надёжность:** graceful shutdown (`enableShutdownHooks` + закрытие Prisma/Telegraf), ретраи с backoff на `429/flood` (`sendWithRetry`), кулдаун зова, изоляция ошибок хендлеров (бот не падает на сбое апдейта).
+
 ## Структура
 
 См. карту проекта в [`AGENTS.md`](AGENTS.md).

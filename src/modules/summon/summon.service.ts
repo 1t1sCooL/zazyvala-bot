@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Telegram } from 'telegraf';
 import { User } from '@prisma/client';
 import { MembersService } from '../members';
+import { MetricsService } from '../metrics';
 import { SettingsService } from '../settings';
 import { TagGroupsService } from '../tag-groups';
 import { sendWithRetry, sleep } from '../../shared/utils/telegram-retry';
@@ -30,6 +31,7 @@ export class SummonService {
     private readonly members: MembersService,
     private readonly settings: SettingsService,
     private readonly tagGroups: TagGroupsService,
+    private readonly metrics: MetricsService,
   ) {}
 
   /** Зовёт всех активных подписанных участников чата. */
@@ -115,6 +117,7 @@ export class SummonService {
     }
 
     await this.settings.touchLastSummon(chatId);
+    this.metrics.incSummons();
     return { status: 'ok', notified, batches: batches.length };
   }
 
