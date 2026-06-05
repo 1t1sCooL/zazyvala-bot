@@ -1,0 +1,28 @@
+# compiled output
+/dist
+/node_modules
+/build
+/.npm-cache
+
+# logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# coverage
+/coverage
+
+# IDE
+.idea
+*.iml
+
+# OS
+.DS_Store

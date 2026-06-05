@@ -1,0 +1,103 @@
+// Prisma schema для бота «Зазывала».
+// Документация: https://pris.ly/d/prisma-schema
+// Telegram-идентификаторы (чаты, пользователи) хранятся как BigInt.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Групповой чат, в который добавлен бот.
+model Chat {
+  id        BigInt   @id // Telegram chat id
+  title     String?
+  type      String? // group | supergroup | ...
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members    ChatMember[]
+  assistants Assistant[]
+  settings   ChatSettings?
+  tagGroups  TagGroup[]
+}
+
+/// Пользователь Telegram (глобальная сущность, переиспользуется между чатами).
+model User {
+  id        BigInt   @id // Telegram user id
+  username  String?
+  firstName String?
+  lastName  String?
+  isBot     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  memberships ChatMember[]
+}
+
+/// Участие пользователя в чате + подписка на зов (opt-in/opt-out).
+model ChatMember {
+  chatId     BigInt
+  userId     BigInt
+  status     String    @default("active") // active | left
+  subscribed Boolean   @default(true)
+  joinedAt   DateTime  @default(now())
+  leftAt     DateTime?
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, userId])
+  @@index([chatId, status])
+}
+
+/// Помощник — пользователь с правом инициировать зов в конкретном чате.
+model Assistant {
+  chatId    BigInt
+  userId    BigInt
+  addedBy   BigInt?
+  createdAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, userId])
+}
+
+/// Настройки бота на конкретный чат.
+model ChatSettings {
+  chatId           BigInt   @id
+  header           String? // текст-приветствие перед зовом
+  mentionsPerBatch Int       @default(5)
+  cooldownSec      Int       @default(60)
+  language         String    @default("ru")
+  lastSummonAt     DateTime? // время последнего зова — для кулдауна
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+/// Именованная подгруппа тегов внутри чата (команда/роль).
+model TagGroup {
+  id        Int      @id @default(autoincrement())
+  chatId    BigInt
+  name      String
+  createdAt DateTime @default(now())
+
+  chat    Chat             @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  members TagGroupMember[]
+
+  @@unique([chatId, name])
+}
+
+/// Состав подгруппы тегов.
+model TagGroupMember {
+  tagGroupId Int
+  userId     BigInt
+
+  tagGroup TagGroup @relation(fields: [tagGroupId], references: [id], onDelete: Cascade)
+
+  @@id([tagGroupId, userId])
+}
