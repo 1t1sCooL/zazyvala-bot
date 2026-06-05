@@ -4,9 +4,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { BotMode } from '../../shared/config/env.validation';
 import { TelegrafExceptionFilter } from '../../shared/filters/telegraf-exception.filter';
+import { AssistantsModule } from '../assistants';
 import { ChatsModule } from '../chats';
 import { MembersModule } from '../members';
 import { SummonModule } from '../summon';
+import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
 import { SummonUpdate } from './summon.update';
@@ -47,11 +49,13 @@ import { SummonUpdate } from './summon.update';
     ChatsModule,
     MembersModule,
     SummonModule,
+    AssistantsModule,
   ],
   providers: [
     BotUpdate,
     MembershipUpdate,
     SummonUpdate,
+    AssistantsUpdate,
     {
       provide: APP_FILTER,
       useClass: TelegrafExceptionFilter,
