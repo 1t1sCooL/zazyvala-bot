@@ -74,6 +74,7 @@ model ChatSettings {
   cooldownSec      Int       @default(60)
   language         String    @default("ru")
   callPolicy       String    @default("all") // кто может звать: all | assistants | admins
+  summonsTotal     Int       @default(0) // счётчик зовов (статистика админки)
   lastSummonAt     DateTime? // время последнего зова — для кулдауна
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

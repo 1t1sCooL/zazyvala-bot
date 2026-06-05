@@ -33,6 +33,7 @@ zazyvala-bot/
 │   │   ├── members/          # MembersService: реестр участников, opt-in/opt-out
 │   │   ├── settings/         # SettingsService: ChatSettings, кулдаун, язык
 │   │   ├── i18n/             # словари RU/EN + t(lang,key,vars)
+│   │   ├── admin/           # REST-админка (auth, stats, чаты, настройки, /admin/ui)
 │   │   ├── summon/           # SummonService + mention-builder + canSummon (ЯДРО зова)
 │   │   ├── assistants/       # AssistantsService: помощники + лимит
 │   │   ├── tag-groups/       # TagGroupsService: кастомные группы тегов

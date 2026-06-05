@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Max,
   Min,
@@ -53,6 +54,12 @@ export class EnvironmentVariables {
 
   @IsEnum(LogLevel)
   LOG_LEVEL: LogLevel = LogLevel.Debug;
+
+  // Токен доступа к веб-админке. Если не задан — админка отключена (401).
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ADMIN_TOKEN?: string;
 }
 
 /**

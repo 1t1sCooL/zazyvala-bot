@@ -1,0 +1,34 @@
+# ОПЦИОНАЛЬНО: доступ к веб-админке (и webhook) снаружи кластера.
+# Замените host на свой домен и настройте TLS. Админка защищена ADMIN_TOKEN,
+# но рекомендуется дополнительно ограничить доступ (IP allowlist / basic-auth).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zazyvala-bot
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bot.example.com
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: zazyvala-bot
+                port:
+                  number: 80
+          # Для webhook-режима бота (BOT_MODE=webhook):
+          - path: /telegram/webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: zazyvala-bot
+                port:
+                  number: 80
+  # tls:
+  #   - hosts: [bot.example.com]
+  #     secretName: zazyvala-bot-tls

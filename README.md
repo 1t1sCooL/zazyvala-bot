@@ -158,6 +158,32 @@ npm run db:seed
 | `npm run db:push` | Синхронизация схемы с БД (prisma db push) |
 | `npm run db:seed` | Сидинг демо-данных |
 
+## Веб-админка
+
+REST API на том же сервере (порт 3000), защищённый токеном `ADMIN_TOKEN`
+(если не задан — админка отключена, 401). Все запросы к `/admin/*` требуют
+заголовок `X-Admin-Token: <ADMIN_TOKEN>`.
+
+| Метод | Эндпоинт | Назначение |
+|-------|----------|------------|
+| GET | `/admin/ui` | HTML-панель (публичная страница, токен вводится в форме) |
+| GET | `/admin/stats` | Сводная статистика (чаты, пользователи, участники, зовы) |
+| GET | `/admin/chats` | Список чатов со счётчиками |
+| GET | `/admin/chats/:id` | Детали чата: настройки, помощники |
+| GET | `/admin/chats/:id/members` | Участники (`?limit&offset`) |
+| PATCH | `/admin/chats/:id/settings` | Обновить настройки (header/cooldownSec/mentionsPerBatch/callPolicy/language) |
+| GET/POST/DELETE | `/admin/chats/:id/assistants[/:userId]` | Помощники чата |
+
+Открыть панель: `https://<host>/admin/ui`, ввести `ADMIN_TOKEN`.
+Снаружи кластера — через Ingress (пример: [`k8s/ingress.example.yaml`](k8s/ingress.example.yaml)).
+
+Пример запроса:
+```bash
+curl -H "X-Admin-Token: $ADMIN_TOKEN" https://<host>/admin/stats
+```
+
+> Идентификаторы Telegram (BigInt) сериализуются в JSON как строки.
+
 ## CI / CD
 
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — на каждый push/PR в `main`: `lint:ci`, `build`, unit и e2e тесты. Статус — во вкладке **Actions** репозитория.

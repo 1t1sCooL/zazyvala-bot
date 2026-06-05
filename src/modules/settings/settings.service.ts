@@ -17,11 +17,11 @@ export class SettingsService {
     });
   }
 
-  /** Фиксирует время последнего зова (для кулдауна). */
+  /** Фиксирует время последнего зова и инкрементит счётчик (статистика). */
   async touchLastSummon(chatId: bigint): Promise<void> {
     await this.prisma.chatSettings.update({
       where: { chatId },
-      data: { lastSummonAt: new Date() },
+      data: { lastSummonAt: new Date(), summonsTotal: { increment: 1 } },
     });
     this.logger.debug(`Updated lastSummonAt for chat ${chatId}`);
   }
