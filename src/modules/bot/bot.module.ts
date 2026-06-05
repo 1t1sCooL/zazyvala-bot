@@ -11,6 +11,7 @@ import { SettingsModule } from '../settings';
 import { SummonModule } from '../summon';
 import { TagGroupsModule } from '../tag-groups';
 import { createActivityMiddleware } from './activity.middleware';
+import { BotCommandsService } from './bot-commands.service';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
@@ -68,6 +69,7 @@ import { TagGroupsUpdate } from './tag-groups.update';
     TagGroupsModule,
   ],
   providers: [
+    BotCommandsService,
     BotUpdate,
     MembershipUpdate,
     SummonUpdate,
