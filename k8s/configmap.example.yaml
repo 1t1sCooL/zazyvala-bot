@@ -1,0 +1,32 @@
+# Несекретная конфигурация. Меню команд бота (кнопка "/").
+# Формат BOT_COMMANDS: пары "команда:описание", разделённые ";" или переводом строки.
+# Применить: kubectl apply -f k8s/configmap.example.yaml, затем rollout restart.
+# Если ConfigMap нет — бот использует встроенный список команд по умолчанию.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zazyvala-bot-config
+  namespace: default
+data:
+  BOT_COMMANDS: |
+    start:Приветствие;
+    help:Список команд;
+    call:Позвать всех (или группу): /call [группа] [текст];
+    join:Подписаться на зов;
+    leave:Отписаться от зова;
+    helpers:Список помощников;
+    addhelper:Назначить помощника (ответом, админ);
+    delhelper:Снять помощника (ответом, админ);
+    callpolicy:Кто может звать (админ);
+    groups:Группы тегов;
+    newgroup:Создать группу тегов (админ);
+    delgroup:Удалить группу тегов (админ);
+    joingroup:Войти в группу тегов;
+    leavegroup:Выйти из группы тегов;
+    settings:Настройки чата;
+    setheader:Текст зова (админ);
+    setcooldown:Кулдаун между зовами (админ);
+    setbatch:Размер пачки упоминаний (админ);
+    setlang:Язык чата ru/en (админ);
+    ignore:Исключить из зова (ответом, админ);
+    unignore:Вернуть в зов (ответом, админ)

@@ -60,6 +60,12 @@ export class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   ADMIN_TOKEN?: string;
+
+  // Меню команд бота (для "/"). Формат: "cmd:описание;cmd:описание".
+  // Если не задано — используется встроенный список по умолчанию.
+  @IsOptional()
+  @IsString()
+  BOT_COMMANDS?: string;
 }
 
 /**

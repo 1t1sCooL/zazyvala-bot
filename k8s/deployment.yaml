@@ -46,6 +46,12 @@ spec:
               value: "log"
             - name: PORT
               value: "3000"
+          # Несекретная конфигурация (напр. BOT_COMMANDS). optional — без неё
+          # бот использует встроенные значения по умолчанию.
+          envFrom:
+            - configMapRef:
+                name: zazyvala-bot-config
+                optional: true
           readinessProbe:
             httpGet:
               path: /health/ready

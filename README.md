@@ -184,6 +184,14 @@ curl -H "X-Admin-Token: $ADMIN_TOKEN" https://<host>/admin/stats
 
 > Идентификаторы Telegram (BigInt) сериализуются в JSON как строки.
 
+### Меню команд (кнопка «/»)
+
+Список команд (`setMyCommands`) настраивается через env `BOT_COMMANDS`
+(формат: `команда:описание;команда:описание`). Если не задан — используется
+встроенный список. В k8s удобно задавать через ConfigMap
+([`k8s/configmap.example.yaml`](k8s/configmap.example.yaml)) — деплой подхватывает
+его через `envFrom` (optional).
+
 ## CI / CD
 
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — на каждый push/PR в `main`: `lint:ci`, `build`, unit и e2e тесты. Статус — во вкладке **Actions** репозитория.
