@@ -104,6 +104,41 @@ npm run db:seed
 | `npm run db:migrate` | Применение миграций (прод) |
 | `npm run db:seed` | Сидинг демо-данных |
 
+## CI / CD
+
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — на каждый push/PR в `main`: `lint:ci`, `build`, unit и e2e тесты. Статус — во вкладке **Actions** репозитория.
+- **CD** ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)) — на push в `main`: сборка Docker-образа, пуш в `ghcr.io/1t1scool/zazyvala-bot` (теги `latest` и `:<sha>`), деплой в Kubernetes.
+
+## Деплой в Kubernetes
+
+Манифесты — в [`k8s/`](k8s/). Образ собирается из [`Dockerfile`](Dockerfile) (multi-stage; при старте выполняется `prisma migrate deploy`).
+
+**Что нужно один раз настроить:**
+
+1. **GitHub → Settings → Secrets → Actions:**
+   - `KUBE_CONFIG` — ваш kubeconfig в base64 (`base64 -w0 ~/.kube/config`).
+   - (GHCR использует встроенный `GITHUB_TOKEN` — отдельный секрет не нужен.)
+2. **В кластере — секрет с токеном и БД:**
+   ```bash
+   kubectl create secret generic zazyvala-bot-secret \
+     --from-literal=BOT_TOKEN='<токен от BotFather>' \
+     --from-literal=DATABASE_URL='postgresql://user:pass@postgres:5432/zazyvala?schema=public'
+   ```
+   (шаблон — [`k8s/secret.example.yaml`](k8s/secret.example.yaml))
+3. **Pull-секрет для приватного образа GHCR** (`ghcr-secret`):
+   ```bash
+   kubectl create secret docker-registry ghcr-secret \
+     --docker-server=ghcr.io --docker-username=<github-user> --docker-password=<PAT>
+   ```
+4. **(опционально) PostgreSQL в кластере** — [`k8s/postgres.yaml`](k8s/postgres.yaml) (добавьте ключ `POSTGRES_PASSWORD` в секрет). Если есть managed-БД — просто укажите её в `DATABASE_URL`.
+
+Дальнейшие деплои — автоматически на каждый push в `main`. Ручной деплой:
+```bash
+sed "s|IMAGE_TAG|$(git rev-parse HEAD)|g" k8s/deployment.yaml | kubectl apply -f -
+```
+
+> Деплой работает в режиме **polling** (1 реплика, strategy `Recreate` — обязательно, иначе два инстанса конфликтуют на getUpdates). Для webhook-режима понадобится Ingress + публичный домен и `BOT_MODE=webhook`.
+
 ## Структура
 
 См. карту проекта в [`AGENTS.md`](AGENTS.md).

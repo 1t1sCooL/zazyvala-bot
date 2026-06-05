@@ -14,7 +14,7 @@
 - [ ] **Настройки чата и локализация** — Текст приветствия, формат упоминаний, blacklist, язык (RU/EN), команды настройки на чат.
 - [ ] **Веб-админка** — Дашборд: список чатов, пользователи, статистика зовов, управление настройками и помощниками; аутентификация.
 - [ ] **Наблюдаемость и надёжность** — Логирование, обработка ошибок Telegram API, метрики, graceful shutdown, ретраи.
-- [ ] **Деплой в Kubernetes** — Dockerfile (multi-stage), k8s-манифесты (Deployment, Service, ConfigMap/Secret, Ingress для webhook), CI, продакшн-конфиг, webhook на проде.
+- [x] **Деплой в Kubernetes** — Dockerfile (multi-stage), k8s-манифесты (Deployment, Service, Secret, опц. Postgres), CI (lint/build/test) + CD (build→ghcr→kubectl apply). Webhook-режим — позже при необходимости.
 
 ## Completed
 
@@ -24,3 +24,4 @@
 | База данных и модели | 2026-06-05 |
 | Регистрация участников в группе | 2026-06-05 |
 | Зов всех (ядро) | 2026-06-05 |
+| Деплой в Kubernetes | 2026-06-05 |
