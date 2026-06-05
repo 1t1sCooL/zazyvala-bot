@@ -34,6 +34,12 @@ spec:
                 secretKeyRef:
                   name: zazyvala-bot-secret
                   key: DATABASE_URL
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zazyvala-bot-secret
+                  key: ADMIN_TOKEN
+                  optional: true
             - name: BOT_MODE
               value: "polling"
             - name: LOG_LEVEL
