@@ -29,6 +29,8 @@ export const messages: Record<string, Record<string, string>> = {
     policy_all: 'все участники',
     policy_assistants: 'администраторы и помощники',
     policy_admins: 'только администраторы',
+    group_only_hint:
+      'Эта команда работает в групповом чате. Добавьте меня в группу и используйте там. В личке доступны /start и /help.',
   },
   en: {
     welcome:
@@ -59,5 +61,7 @@ export const messages: Record<string, Record<string, string>> = {
     policy_all: 'everyone',
     policy_assistants: 'admins and assistants',
     policy_admins: 'admins only',
+    group_only_hint:
+      'This command works in a group chat. Add me to a group and use it there. In DM only /start and /help are available.',
   },
 };

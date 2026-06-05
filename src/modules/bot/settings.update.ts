@@ -4,7 +4,12 @@ import { asLang, isLang, t } from '../i18n';
 import { MembersService } from '../members';
 import { SettingsService } from '../settings';
 import { describePolicy } from '../summon';
-import { commandArg, fromUserInput, replyTarget } from './command-args';
+import {
+  commandArg,
+  fromUserInput,
+  replyTarget,
+  requireGroup,
+} from './command-args';
 import { Context } from './context.interface';
 import { isChatAdmin } from './is-chat-admin';
 
@@ -23,7 +28,7 @@ export class SettingsUpdate {
 
   @Command('settings')
   async onView(@Ctx() ctx: Context): Promise<void> {
-    if (!isGroupChat(ctx)) return;
+    if (!(await requireGroup(ctx))) return;
     const s = await this.settings.getForChat(BigInt(ctx.chat!.id));
     await ctx.reply(
       [
@@ -82,7 +87,7 @@ export class SettingsUpdate {
 
   @Command('setlang')
   async onSetLang(@Ctx() ctx: Context): Promise<void> {
-    if (!isGroupChat(ctx) || !ctx.from) return;
+    if (!(await requireGroup(ctx)) || !ctx.from) return;
     const chatId = BigInt(ctx.chat!.id);
     const arg = commandArg(ctx, 'setlang').toLowerCase();
 
@@ -138,16 +143,11 @@ export class SettingsUpdate {
   }
 
   private async ensureAdmin(ctx: Context): Promise<boolean> {
-    if (!isGroupChat(ctx) || !ctx.from) return false;
+    if (!(await requireGroup(ctx)) || !ctx.from) return false;
     if (!(await isChatAdmin(ctx.telegram, ctx.chat!.id, ctx.from.id))) {
       await ctx.reply('Менять настройки может только администратор чата.');
       return false;
     }
     return true;
   }
-}
-
-function isGroupChat(ctx: Context): boolean {
-  const t = ctx.chat?.type;
-  return t === 'group' || t === 'supergroup';
 }

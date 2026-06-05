@@ -1,4 +1,5 @@
 import type { User as TgUser } from 'telegraf/typings/core/types/typegram';
+import { t } from '../i18n';
 import { EnsureUserInput } from '../members';
 import { Context } from './context.interface';
 
@@ -7,6 +8,14 @@ export function commandArg(ctx: Context, command: string): string {
   const message = ctx.message as { text?: string } | undefined;
   const text = message?.text ?? '';
   return text.replace(new RegExp(`^/${command}(@\\w+)?\\s*`, 'i'), '').trim();
+}
+
+/** Только для групп. Иначе отвечает подсказкой и возвращает false. */
+export async function requireGroup(ctx: Context): Promise<boolean> {
+  const type = ctx.chat?.type;
+  if (type === 'group' || type === 'supergroup') return true;
+  await ctx.reply(t('ru', 'group_only_hint'));
+  return false;
 }
 
 /** Пользователь из сообщения, на которое ответили командой (или undefined). */

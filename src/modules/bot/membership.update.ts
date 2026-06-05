@@ -3,6 +3,7 @@ import { Command, Ctx, Next, On, Update } from 'nestjs-telegraf';
 import type { User as TgUser } from 'telegraf/typings/core/types/typegram';
 import { ChatsService } from '../chats';
 import { EnsureUserInput, MembersService } from '../members';
+import { requireGroup } from './command-args';
 import { Context } from './context.interface';
 
 /**
@@ -77,9 +78,9 @@ export class MembershipUpdate {
 
   @Command('join')
   async onJoin(@Ctx() ctx: Context): Promise<void> {
-    const chat = ctx.chat;
+    if (!(await requireGroup(ctx)) || !ctx.from) return;
+    const chat = ctx.chat!;
     const from = ctx.from;
-    if (!chat || !from) return;
 
     await this.chats.ensureChat({ id: BigInt(chat.id), type: chat.type });
     await this.members.setSubscribed(BigInt(chat.id), toUserInput(from), true);
@@ -89,9 +90,9 @@ export class MembershipUpdate {
 
   @Command('leave')
   async onLeave(@Ctx() ctx: Context): Promise<void> {
-    const chat = ctx.chat;
+    if (!(await requireGroup(ctx)) || !ctx.from) return;
+    const chat = ctx.chat!;
     const from = ctx.from;
-    if (!chat || !from) return;
 
     await this.members.setSubscribed(BigInt(chat.id), toUserInput(from), false);
     this.logger.debug(`/leave ${from.id} in chat ${chat.id}`);

@@ -3,6 +3,7 @@ import { Command, Ctx, Update } from 'nestjs-telegraf';
 import type { User as TgUser } from 'telegraf/typings/core/types/typegram';
 import { AssistantsService } from '../assistants';
 import { MembersService } from '../members';
+import { requireGroup } from './command-args';
 import { Context } from './context.interface';
 import { isChatAdmin } from './is-chat-admin';
 
@@ -94,8 +95,8 @@ export class AssistantsUpdate {
 
   @Command('helpers')
   async onList(@Ctx() ctx: Context): Promise<void> {
-    const chat = ctx.chat;
-    if (!chat || (chat.type !== 'group' && chat.type !== 'supergroup')) return;
+    if (!(await requireGroup(ctx))) return;
+    const chat = ctx.chat!;
 
     const list = await this.assistants.listWithUsers(BigInt(chat.id));
     if (list.length === 0) {

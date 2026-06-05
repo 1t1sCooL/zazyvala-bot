@@ -3,7 +3,7 @@ import { Command, Ctx, Update } from 'nestjs-telegraf';
 import { TagGroupsService } from '../tag-groups';
 import { Context } from './context.interface';
 import { isChatAdmin } from './is-chat-admin';
-import { commandArg, fromUserInput } from './command-args';
+import { commandArg, fromUserInput, requireGroup } from './command-args';
 
 /**
  * Управление кастомными группами тегов. Создание/удаление — админ;
@@ -17,7 +17,7 @@ export class TagGroupsUpdate {
 
   @Command('groups')
   async onList(@Ctx() ctx: Context): Promise<void> {
-    if (!isGroupChat(ctx)) return;
+    if (!(await requireGroup(ctx))) return;
     const list = await this.groups.list(BigInt(ctx.chat!.id));
     if (list.length === 0) {
       await ctx.reply('Групп тегов пока нет. Создать: /newgroup <имя> (админ)');
@@ -61,7 +61,7 @@ export class TagGroupsUpdate {
 
   @Command('joingroup')
   async onJoin(@Ctx() ctx: Context): Promise<void> {
-    if (!isGroupChat(ctx) || !ctx.from) return;
+    if (!(await requireGroup(ctx)) || !ctx.from) return;
     const name = commandArg(ctx, 'joingroup');
     if (!name) {
       await ctx.reply('Укажите имя: /joingroup <имя>');
@@ -87,7 +87,7 @@ export class TagGroupsUpdate {
 
   @Command('leavegroup')
   async onLeave(@Ctx() ctx: Context): Promise<void> {
-    if (!isGroupChat(ctx) || !ctx.from) return;
+    if (!(await requireGroup(ctx)) || !ctx.from) return;
     const name = commandArg(ctx, 'leavegroup');
     if (!name) {
       await ctx.reply('Укажите имя: /leavegroup <имя>');
@@ -112,16 +112,11 @@ export class TagGroupsUpdate {
   }
 
   private async ensureGroupAdmin(ctx: Context): Promise<boolean> {
-    if (!isGroupChat(ctx) || !ctx.from) return false;
+    if (!(await requireGroup(ctx)) || !ctx.from) return false;
     if (!(await isChatAdmin(ctx.telegram, ctx.chat!.id, ctx.from.id))) {
       await ctx.reply('Создавать и удалять группы может только администратор.');
       return false;
     }
     return true;
   }
-}
-
-function isGroupChat(ctx: Context): boolean {
-  const t = ctx.chat?.type;
-  return t === 'group' || t === 'supergroup';
 }
