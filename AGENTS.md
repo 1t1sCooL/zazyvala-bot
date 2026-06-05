@@ -32,8 +32,9 @@ zazyvala-bot/
 │   │   ├── chats/             # ChatsService.ensureChat (+ index.ts публичный API)
 │   │   ├── members/          # MembersService: реестр участников, opt-in/opt-out
 │   │   ├── settings/         # SettingsService: ChatSettings + кулдаун
-│   │   ├── summon/           # SummonService + mention-builder (ЯДРО зова)
+│   │   ├── summon/           # SummonService + mention-builder + canSummon (ЯДРО зова)
 │   │   ├── assistants/       # AssistantsService: помощники + лимит
+│   │   ├── tag-groups/       # TagGroupsService: кастомные группы тегов
 │   │   └── health/            # HTTP healthcheck
 │   │       ├── health.module.ts
 │   │       └── health.controller.ts   # GET /health

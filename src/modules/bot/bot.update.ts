@@ -13,7 +13,9 @@ const HELP =
   '/leave — отписаться от зова\n' +
   '/helpers — список помощников\n' +
   '/addhelper, /delhelper — управление помощниками (ответом на сообщение; только админ)\n' +
-  '/callpolicy — кто может звать: all | assistants | admins (меняет админ)\n\n' +
+  '/callpolicy — кто может звать: all | assistants | admins (меняет админ)\n' +
+  '/groups — группы тегов; /newgroup, /delgroup (админ); /joingroup, /leavegroup\n' +
+  '/call <группа> — позвать только участников группы\n\n' +
   'Добавьте меня в группу: я регистрирую участников автоматически, а /call созывает их пачками.';
 
 /**

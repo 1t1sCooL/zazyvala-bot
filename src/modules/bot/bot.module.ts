@@ -9,10 +9,12 @@ import { ChatsModule } from '../chats';
 import { MembersModule } from '../members';
 import { SettingsModule } from '../settings';
 import { SummonModule } from '../summon';
+import { TagGroupsModule } from '../tag-groups';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
 import { SummonUpdate } from './summon.update';
+import { TagGroupsUpdate } from './tag-groups.update';
 
 /**
  * Presentation-слой Telegram. Подключает nestjs-telegraf и регистрирует хендлеры.
@@ -52,12 +54,14 @@ import { SummonUpdate } from './summon.update';
     SettingsModule,
     SummonModule,
     AssistantsModule,
+    TagGroupsModule,
   ],
   providers: [
     BotUpdate,
     MembershipUpdate,
     SummonUpdate,
     AssistantsUpdate,
+    TagGroupsUpdate,
     {
       provide: APP_FILTER,
       useClass: TelegrafExceptionFilter,

@@ -9,6 +9,7 @@ import {
   isCallPolicy,
   SummonService,
 } from '../summon';
+import { TagGroupsService } from '../tag-groups';
 import { Context } from './context.interface';
 import { isChatAdmin } from './is-chat-admin';
 
@@ -23,6 +24,7 @@ export class SummonUpdate {
     private readonly summon: SummonService,
     private readonly settings: SettingsService,
     private readonly assistants: AssistantsService,
+    private readonly tagGroups: TagGroupsService,
   ) {}
 
   @Command('call')
@@ -52,15 +54,25 @@ export class SummonUpdate {
       return;
     }
 
-    const customText = extractArgs(ctx, 'call');
-    this.logger.debug(
-      `/call in chat ${chatId} (text len ${customText.length})`,
-    );
+    const args = extractArgs(ctx, 'call');
 
-    const result = await this.summon.callAll(
-      chatId,
-      ctx.telegram,
-      customText || undefined,
+    // Если первый токен — имя существующей группы, зовём её; остаток — текст.
+    const [firstToken, ...rest] = args.split(/\s+/).filter(Boolean);
+    const group = firstToken
+      ? await this.tagGroups.findByName(chatId, firstToken)
+      : null;
+
+    const result = group
+      ? await this.summon.callGroup(
+          chatId,
+          ctx.telegram,
+          group.name,
+          rest.join(' ') || undefined,
+        )
+      : await this.summon.callAll(chatId, ctx.telegram, args || undefined);
+
+    this.logger.debug(
+      `/call in chat ${chatId} (group=${group?.name ?? '-'}, status=${result.status})`,
     );
 
     switch (result.status) {
@@ -71,8 +83,13 @@ export class SummonUpdate {
         break;
       case 'empty':
         await ctx.reply(
-          'Некого звать — пусть участники напишут /join или просто что-нибудь в чат.',
+          group
+            ? `В группе «${group.name}» пока никого. Вступить: /joingroup ${group.name}`
+            : 'Некого звать — пусть участники напишут /join или просто что-нибудь в чат.',
         );
+        break;
+      case 'no_group':
+        await ctx.reply('Такой группы нет. Список: /groups');
         break;
       case 'ok':
         // Зов уже отправлен пачками — лишнего сообщения не добавляем.
