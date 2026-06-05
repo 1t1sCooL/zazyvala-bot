@@ -3,6 +3,7 @@ import { Command, Ctx, Update } from 'nestjs-telegraf';
 import type { User as TgUser } from 'telegraf/typings/core/types/typegram';
 import { AssistantsService } from '../assistants';
 import { MembersService } from '../members';
+import { displayName, tgDisplayName } from '../../shared/utils/display-name';
 import { requireGroup } from './command-args';
 import { Context } from './context.interface';
 import { isChatAdmin } from './is-chat-admin';
@@ -52,7 +53,7 @@ export class AssistantsUpdate {
       `/addhelper ${target.id} in chat ${chatId}: ${res.status}`,
     );
 
-    const name = displayName(target);
+    const name = tgDisplayName(target);
     switch (res.status) {
       case 'ok':
         await ctx.reply(`Готово — ${name} теперь помощник.`);
@@ -88,8 +89,8 @@ export class AssistantsUpdate {
 
     await ctx.reply(
       res.status === 'ok'
-        ? `${displayName(target)} больше не помощник.`
-        : `${displayName(target)} не был помощником.`,
+        ? `${tgDisplayName(target)} больше не помощник.`
+        : `${tgDisplayName(target)} не был помощником.`,
     );
   }
 
@@ -107,9 +108,9 @@ export class AssistantsUpdate {
     }
 
     const lines = list.map((a) => {
-      const name =
-        a.user?.firstName ??
-        (a.user?.username ? `@${a.user.username}` : `id ${a.userId}`);
+      const name = a.user
+        ? displayName(a.user, `id ${a.userId}`)
+        : `id ${a.userId}`;
       return `• ${name}`;
     });
     await ctx.reply(`Помощники:\n${lines.join('\n')}`);
@@ -137,10 +138,4 @@ function replyTarget(ctx: Context): TgUser | undefined {
     | { reply_to_message?: { from?: TgUser } }
     | undefined;
   return message?.reply_to_message?.from;
-}
-
-function displayName(user: TgUser): string {
-  return (
-    user.first_name ?? (user.username ? `@${user.username}` : `id ${user.id}`)
-  );
 }

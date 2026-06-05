@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Command, Ctx, Update } from 'nestjs-telegraf';
 import { asLang, isLang, t } from '../i18n';
+import { tgDisplayName } from '../../shared/utils/display-name';
 import { MembersService } from '../members';
 import { SettingsService } from '../settings';
 import { describePolicy } from '../summon';
@@ -134,7 +135,7 @@ export class SettingsUpdate {
       fromUserInput(target),
       value,
     );
-    const name = target.first_name ?? `id ${target.id}`;
+    const name = tgDisplayName(target);
     await ctx.reply(
       value
         ? `${name} больше не будет упоминаться в зове.`

@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { displayName } from '../../shared/utils/display-name';
 import { AssistantsService } from '../assistants';
 import { SettingsService } from '../settings';
 import { UpdateSettingsDto } from './dto';
@@ -83,7 +84,7 @@ export class AdminService {
       settings: chat.settings,
       assistants: assistants.map((a) => ({
         userId: a.userId,
-        name: a.user?.firstName ?? a.user?.username ?? null,
+        name: a.user ? displayName(a.user, `id ${a.userId}`) : null,
       })),
     };
   }
@@ -98,7 +99,7 @@ export class AdminService {
     });
     return members.map((m) => ({
       userId: m.userId,
-      name: m.user?.firstName ?? m.user?.username ?? null,
+      name: m.user ? displayName(m.user, `id ${m.userId}`) : null,
       username: m.user?.username ?? null,
       status: m.status,
       subscribed: m.subscribed,

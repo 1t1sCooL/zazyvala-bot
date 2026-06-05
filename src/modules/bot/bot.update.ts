@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { Ctx, Help, Start, Update } from 'nestjs-telegraf';
 import { asLang, t } from '../i18n';
 import { SettingsService } from '../settings';
+import { CommandRegistry } from './command-registry';
 import { Context } from './context.interface';
 
 /**
@@ -12,7 +13,10 @@ import { Context } from './context.interface';
 export class BotUpdate {
   private readonly logger = new Logger(BotUpdate.name);
 
-  constructor(private readonly settings: SettingsService) {}
+  constructor(
+    private readonly settings: SettingsService,
+    private readonly registry: CommandRegistry,
+  ) {}
 
   @Start()
   async onStart(@Ctx() ctx: Context): Promise<void> {
@@ -23,6 +27,12 @@ export class BotUpdate {
   @Help()
   async onHelp(@Ctx() ctx: Context): Promise<void> {
     this.logger.debug(`/help from chat ${ctx.chat?.id}`);
+    // Если задан белый список (BOT_COMMANDS) — показываем только его;
+    // иначе — встроенный локализованный help.
+    if (this.registry.configured) {
+      await ctx.reply(this.registry.helpText());
+      return;
+    }
     await ctx.reply(t(await this.lang(ctx), 'help'));
   }
 

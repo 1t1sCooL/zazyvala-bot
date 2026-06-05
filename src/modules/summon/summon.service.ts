@@ -5,6 +5,7 @@ import { MembersService } from '../members';
 import { MetricsService } from '../metrics';
 import { SettingsService } from '../settings';
 import { TagGroupsService } from '../tag-groups';
+import { displayName } from '../../shared/utils/display-name';
 import { sendWithRetry, sleep } from '../../shared/utils/telegram-retry';
 import { buildMentionMessage, chunk, MentionTarget } from './mention-builder';
 
@@ -135,6 +136,6 @@ export class SummonService {
 function toTarget(user: User): MentionTarget {
   return {
     userId: user.id,
-    name: user.firstName ?? user.username ?? 'участник',
+    name: displayName(user),
   };
 }

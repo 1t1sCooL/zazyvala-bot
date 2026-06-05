@@ -11,6 +11,8 @@ import { SettingsModule } from '../settings';
 import { SummonModule } from '../summon';
 import { TagGroupsModule } from '../tag-groups';
 import { createActivityMiddleware } from './activity.middleware';
+import { createCommandGateMiddleware } from './command-gate.middleware';
+import { CommandRegistry, CommandRegistryModule } from './command-registry';
 import { BotCommandsService } from './bot-commands.service';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
@@ -26,12 +28,18 @@ import { TagGroupsUpdate } from './tag-groups.update';
 @Module({
   imports: [
     TelegrafModule.forRootAsync({
-      imports: [ConfigModule, ChatsModule, MembersModule],
-      inject: [ConfigService, ChatsService, MembersService],
+      imports: [
+        ConfigModule,
+        ChatsModule,
+        MembersModule,
+        CommandRegistryModule,
+      ],
+      inject: [ConfigService, ChatsService, MembersService, CommandRegistry],
       useFactory: (
         config: ConfigService,
         chats: ChatsService,
         members: MembersService,
+        registry: CommandRegistry,
       ) => {
         const logger = new Logger('BotModule');
         const token = config.getOrThrow<string>('BOT_TOKEN');
@@ -39,9 +47,13 @@ import { TagGroupsUpdate } from './tag-groups.update';
 
         logger.debug(`Initializing Telegram bot in "${mode}" mode`);
 
-        // Сквозной middleware авто-регистрации (bot.use) — до всех хендлеров,
-        // всегда вызывает next(), поэтому не блокирует команды.
-        const middlewares = [createActivityMiddleware(chats, members)];
+        // Сквозные middleware (bot.use) — до хендлеров команд, всегда next():
+        //  1) авто-регистрация участников;
+        //  2) гейт команд по белому списку BOT_COMMANDS.
+        const middlewares = [
+          createActivityMiddleware(chats, members),
+          createCommandGateMiddleware(registry),
+        ];
 
         if (mode === BotMode.Webhook) {
           const domain = config.getOrThrow<string>('BOT_WEBHOOK_DOMAIN');
@@ -61,6 +73,7 @@ import { TagGroupsUpdate } from './tag-groups.update';
         return { token, middlewares };
       },
     }),
+    CommandRegistryModule,
     ChatsModule,
     MembersModule,
     SettingsModule,
