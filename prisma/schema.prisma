@@ -72,6 +72,7 @@ model ChatSettings {
   mentionsPerBatch Int       @default(5)
   cooldownSec      Int       @default(60)
   language         String    @default("ru")
+  callPolicy       String    @default("all") // кто может звать: all | assistants | admins
   lastSummonAt     DateTime? // время последнего зова — для кулдауна
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

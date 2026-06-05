@@ -50,6 +50,7 @@ CREATE TABLE "ChatSettings" (
     "mentionsPerBatch" INTEGER NOT NULL DEFAULT 5,
     "cooldownSec" INTEGER NOT NULL DEFAULT 60,
     "language" TEXT NOT NULL DEFAULT 'ru',
+    "callPolicy" TEXT NOT NULL DEFAULT 'all',
     "lastSummonAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

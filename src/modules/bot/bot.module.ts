@@ -7,6 +7,7 @@ import { TelegrafExceptionFilter } from '../../shared/filters/telegraf-exception
 import { AssistantsModule } from '../assistants';
 import { ChatsModule } from '../chats';
 import { MembersModule } from '../members';
+import { SettingsModule } from '../settings';
 import { SummonModule } from '../summon';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
@@ -48,6 +49,7 @@ import { SummonUpdate } from './summon.update';
     }),
     ChatsModule,
     MembersModule,
+    SettingsModule,
     SummonModule,
     AssistantsModule,
   ],

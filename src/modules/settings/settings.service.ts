@@ -25,4 +25,14 @@ export class SettingsService {
     });
     this.logger.debug(`Updated lastSummonAt for chat ${chatId}`);
   }
+
+  /** Устанавливает политику прав на зов (all | assistants | admins). */
+  async setCallPolicy(chatId: bigint, policy: string): Promise<void> {
+    await this.prisma.chatSettings.upsert({
+      where: { chatId },
+      update: { callPolicy: policy },
+      create: { chatId, callPolicy: policy },
+    });
+    this.logger.debug(`Set callPolicy=${policy} for chat ${chatId}`);
+  }
 }
