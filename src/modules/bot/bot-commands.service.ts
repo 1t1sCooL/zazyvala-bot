@@ -44,7 +44,8 @@ export class BotCommandsService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.bot.telegram.setMyCommands(COMMANDS);
-      this.logger.debug(`[FIX] Registered ${COMMANDS.length} bot commands`);
+      // Уровень log (не debug), чтобы подтверждение было видно в проде (LOG_LEVEL=log).
+      this.logger.log(`Registered ${COMMANDS.length} bot commands`);
     } catch (err) {
       // Сетевой сбой не должен ронять старт приложения.
       this.logger.error(
