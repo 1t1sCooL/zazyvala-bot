@@ -5,11 +5,12 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { BotMode } from '../../shared/config/env.validation';
 import { TelegrafExceptionFilter } from '../../shared/filters/telegraf-exception.filter';
 import { AssistantsModule } from '../assistants';
-import { ChatsModule } from '../chats';
-import { MembersModule } from '../members';
+import { ChatsModule, ChatsService } from '../chats';
+import { MembersModule, MembersService } from '../members';
 import { SettingsModule } from '../settings';
 import { SummonModule } from '../summon';
 import { TagGroupsModule } from '../tag-groups';
+import { createActivityMiddleware } from './activity.middleware';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
@@ -24,19 +25,28 @@ import { TagGroupsUpdate } from './tag-groups.update';
 @Module({
   imports: [
     TelegrafModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
+      imports: [ConfigModule, ChatsModule, MembersModule],
+      inject: [ConfigService, ChatsService, MembersService],
+      useFactory: (
+        config: ConfigService,
+        chats: ChatsService,
+        members: MembersService,
+      ) => {
         const logger = new Logger('BotModule');
         const token = config.getOrThrow<string>('BOT_TOKEN');
         const mode = config.get<BotMode>('BOT_MODE', BotMode.Polling);
 
         logger.debug(`Initializing Telegram bot in "${mode}" mode`);
 
+        // Сквозной middleware авто-регистрации (bot.use) — до всех хендлеров,
+        // всегда вызывает next(), поэтому не блокирует команды.
+        const middlewares = [createActivityMiddleware(chats, members)];
+
         if (mode === BotMode.Webhook) {
           const domain = config.getOrThrow<string>('BOT_WEBHOOK_DOMAIN');
           return {
             token,
+            middlewares,
             launchOptions: {
               webhook: {
                 domain,
@@ -47,7 +57,7 @@ import { TagGroupsUpdate } from './tag-groups.update';
         }
 
         // Long polling (по умолчанию, для разработки).
-        return { token };
+        return { token, middlewares };
       },
     }),
     ChatsModule,

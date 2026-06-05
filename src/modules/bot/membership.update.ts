@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { Command, Ctx, Next, On, Update } from 'nestjs-telegraf';
+import { Command, Ctx, On, Update } from 'nestjs-telegraf';
 import type { User as TgUser } from 'telegraf/typings/core/types/typegram';
 import { ChatsService } from '../chats';
 import { EnsureUserInput, MembersService } from '../members';
@@ -50,31 +50,8 @@ export class MembershipUpdate {
     this.logger.debug(`left_chat_member ${user.id} in chat ${chat.id}`);
   }
 
-  /**
-   * Авто-регистрация по активности в группе.
-   *
-   * [FIX] Обработчик `message` выполняется как middleware Telegraf. Если он не
-   * вызовет next(), последующие хендлеры команд (/call, /join, ... — они
-   * зарегистрированы позже в цепочке) НЕ выполнятся, и бот будет отвечать
-   * только на /start и /help. Поэтому всегда передаём управление дальше.
-   */
-  @On('message')
-  async onMessage(
-    @Ctx() ctx: Context,
-    @Next() next: () => Promise<void>,
-  ): Promise<void> {
-    const chat = ctx.chat;
-    const from = ctx.from;
-    const isGroup = chat?.type === 'group' || chat?.type === 'supergroup';
-
-    if (chat && from && !from.is_bot && isGroup) {
-      await this.chats.ensureChat({ id: BigInt(chat.id), type: chat.type });
-      await this.members.registerMember(BigInt(chat.id), toUserInput(from));
-    }
-
-    // Критично: пропустить апдейт дальше по цепочке к хендлерам команд.
-    await next();
-  }
+  // Авто-регистрация по активности вынесена в сквозной middleware
+  // (createActivityMiddleware), чтобы не блокировать цепочку команд.
 
   @Command('join')
   async onJoin(@Ctx() ctx: Context): Promise<void> {
