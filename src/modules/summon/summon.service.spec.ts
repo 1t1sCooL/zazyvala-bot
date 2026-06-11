@@ -9,7 +9,12 @@ function member(id: bigint, firstName: string) {
 }
 
 describe('SummonService', () => {
-  let members: { listActiveSubscribed: jest.Mock; registerMember: jest.Mock };
+  let members: {
+    listActiveSubscribed: jest.Mock;
+    registerMember: jest.Mock;
+    resolvePending: jest.Mock;
+    listPendingUsernames: jest.Mock;
+  };
   let settings: { getForChat: jest.Mock; touchLastSummon: jest.Mock };
   let tagGroups: { listMembersWithUsers: jest.Mock };
   let telegram: {
@@ -23,6 +28,8 @@ describe('SummonService', () => {
     members = {
       listActiveSubscribed: jest.fn().mockResolvedValue([]),
       registerMember: jest.fn().mockResolvedValue({}),
+      resolvePending: jest.fn().mockResolvedValue(undefined),
+      listPendingUsernames: jest.fn().mockResolvedValue([]),
     };
     settings = {
       getForChat: jest.fn().mockResolvedValue({
@@ -128,6 +135,19 @@ describe('SummonService', () => {
       const result = await service.callAll(1n, telegram as never);
 
       expect(result).toEqual({ status: 'ok', notified: 2, batches: 1 });
+    });
+
+    it('includes pending @usernames in the summon after resolving them', async () => {
+      members.listActiveSubscribed.mockResolvedValue([member(10n, 'Иван')]);
+      members.listPendingUsernames.mockResolvedValue(['petrov']);
+      telegram.getChatMembersCount.mockResolvedValue(3);
+
+      const result = await service.callAll(1n, telegram as never);
+
+      expect(members.resolvePending).toHaveBeenCalledWith(1n);
+      expect(result).toEqual({ status: 'ok', notified: 2, batches: 1 });
+      const [, text] = telegram.sendMessage.mock.calls[0] as [number, string];
+      expect(text).toBe('Иван, @petrov');
     });
 
     it('sends summon batches into the forum topic when threadId is given', async () => {

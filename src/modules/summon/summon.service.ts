@@ -50,8 +50,16 @@ export class SummonService {
     // активности/событиям. Админов можно получить явно: подкачиваем их перед
     // зовом, чтобы в свежедобавленном чате звать не одного инициатора.
     await this.syncChatAdmins(chatId, telegram);
+    // Отложенные @username, чьих владельцев бот уже встречал (в этом или
+    // другом чате), конвертируются в полноценных участников и попадут в
+    // выборку ниже — с упоминанием по имени и фамилии, а не по username.
+    await this.members.resolvePending(chatId);
     const members = await this.members.listActiveSubscribed(chatId);
-    const targets = members.map((m) => toTarget(m.user));
+    const pendingUsernames = await this.members.listPendingUsernames(chatId);
+    const targets: MentionTarget[] = [
+      ...members.map((m) => toTarget(m.user)),
+      ...pendingUsernames.map((username) => ({ username })),
+    ];
     const result = await this.dispatch(
       chatId,
       telegram,

@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 import { LANGS } from '../i18n';
 import { CALL_POLICIES } from '../summon';
 
@@ -34,4 +42,12 @@ export class UpdateSettingsDto {
 export class AddAssistantDto {
   @IsString()
   userId!: string;
+}
+
+export class AddMemberDto {
+  @IsString()
+  @Matches(/^@?[A-Za-z0-9_]{5,32}$/, {
+    message: 'username must be 5-32 chars: latin letters, digits, underscore',
+  })
+  username!: string;
 }

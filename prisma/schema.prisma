@@ -19,10 +19,11 @@ model Chat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members    ChatMember[]
-  assistants Assistant[]
-  settings   ChatSettings?
-  tagGroups  TagGroup[]
+  members        ChatMember[]
+  assistants     Assistant[]
+  settings       ChatSettings?
+  tagGroups      TagGroup[]
+  pendingMembers PendingMember[]
 }
 
 /// Пользователь Telegram (глобальная сущность, переиспользуется между чатами).
@@ -39,8 +40,8 @@ model User {
 
 /// Участие пользователя в чате + подписка на зов (opt-in/opt-out).
 model ChatMember {
-  chatId     BigInt
-  userId     BigInt
+  chatId      BigInt
+  userId      BigInt
   status      String    @default("active") // active | left
   subscribed  Boolean   @default(true)
   blacklisted Boolean   @default(false) // исключён из зова
@@ -52,6 +53,19 @@ model ChatMember {
 
   @@id([chatId, userId])
   @@index([chatId, status])
+}
+
+/// Участник, добавленный по @username (через админку), пока бот не узнал его
+/// Telegram id. Как только пользователь «объявится» (бот увидит его id с этим
+/// username), запись конвертируется в полноценный ChatMember и удаляется.
+model PendingMember {
+  chatId   BigInt
+  username String // нормализован: без @, в нижнем регистре
+  addedAt  DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, username])
 }
 
 /// Помощник — пользователь с правом инициировать зов в конкретном чате.
@@ -68,7 +82,7 @@ model Assistant {
 
 /// Настройки бота на конкретный чат.
 model ChatSettings {
-  chatId           BigInt   @id
+  chatId           BigInt    @id
   header           String? // текст-приветствие перед зовом
   mentionsPerBatch Int       @default(5)
   cooldownSec      Int       @default(60)

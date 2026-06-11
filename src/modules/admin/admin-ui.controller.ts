@@ -30,17 +30,42 @@ const PAGE = `<!doctype html>
   <div id="stats" class="stats"></div>
   <h2>Чаты</h2>
   <table id="chats"><thead><tr>
-    <th>ID</th><th>Название</th><th>Тип</th><th>Участники</th><th>Помощники</th><th>Зовов</th>
+    <th>ID</th><th>Название</th><th>Тип</th><th>Участники</th><th>Помощники</th><th>Зовов</th><th></th>
   </tr></thead><tbody></tbody></table>
 
 <script>
   const tokenEl = document.getElementById('token');
   tokenEl.value = localStorage.getItem('adminToken') || '';
 
-  async function api(path) {
-    const res = await fetch(path, { headers: { 'X-Admin-Token': tokenEl.value } });
+  async function api(path, options) {
+    const res = await fetch(path, Object.assign({}, options, {
+      headers: Object.assign(
+        { 'X-Admin-Token': tokenEl.value },
+        options && options.body ? { 'Content-Type': 'application/json' } : {},
+      ),
+    }));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
+  }
+
+  // Добавление участника по @username: если бот уже знает его id — сразу
+  // полноценный участник, иначе появится в зове как @username до первого
+  // его сообщения.
+  async function addMember(chatId) {
+    const raw = prompt('Юзернейм участника (например, @ivanov):');
+    if (!raw) return;
+    try {
+      const r = await api('/admin/chats/' + chatId + '/members', {
+        method: 'POST',
+        body: JSON.stringify({ username: raw.trim() }),
+      });
+      alert(r.status === 'member'
+        ? 'Добавлен как полноценный участник (id уже известен боту).'
+        : 'Добавлен как @' + r.username + ' — до первого сообщения будет упоминаться по юзернейму.');
+      load();
+    } catch (e) {
+      alert('Не получилось: ' + e.message + ' (юзернейм: 5-32 символа, латиница/цифры/_)');
+    }
   }
 
   async function load() {
@@ -56,7 +81,8 @@ const PAGE = `<!doctype html>
       const chats = await api('/admin/chats');
       document.querySelector('#chats tbody').innerHTML = chats.map(c =>
         '<tr><td>' + c.id + '</td><td>' + (c.title || '') + '</td><td>' + (c.type || '') +
-        '</td><td>' + c.members + '</td><td>' + c.assistants + '</td><td>' + c.summonsTotal + '</td></tr>'
+        '</td><td>' + c.members + '</td><td>' + c.assistants + '</td><td>' + c.summonsTotal +
+        '</td><td><button onclick="addMember(\\'' + c.id + '\\')">+ участник</button></td></tr>'
       ).join('');
     } catch (e) {
       document.getElementById('err').textContent = 'Ошибка: ' + e.message + ' (проверьте токен)';

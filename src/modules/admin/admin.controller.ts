@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { AdminService } from './admin.service';
-import { AddAssistantDto, UpdateSettingsDto } from './dto';
+import { AddAssistantDto, AddMemberDto, UpdateSettingsDto } from './dto';
 
 @Controller('admin')
 @UseGuards(AdminAuthGuard)
@@ -44,6 +44,19 @@ export class AdminController {
       limit ? Number(limit) : undefined,
       offset ? Number(offset) : undefined,
     );
+  }
+
+  @Post('chats/:id/members')
+  addMember(@Param('id') id: string, @Body() dto: AddMemberDto) {
+    return this.admin.addMemberByUsername(BigInt(id), dto.username);
+  }
+
+  @Delete('chats/:id/members/pending/:username')
+  removePendingMember(
+    @Param('id') id: string,
+    @Param('username') username: string,
+  ) {
+    return this.admin.removePendingMember(BigInt(id), username);
   }
 
   @Patch('chats/:id/settings')

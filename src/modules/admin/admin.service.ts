@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { displayName } from '../../shared/utils/display-name';
 import { AssistantsService } from '../assistants';
+import { MembersService } from '../members';
 import { SettingsService } from '../settings';
 import { UpdateSettingsDto } from './dto';
 
@@ -29,6 +30,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
     private readonly assistants: AssistantsService,
+    private readonly members: MembersService,
   ) {}
 
   async getStats(): Promise<AdminStats> {
@@ -97,14 +99,48 @@ export class AdminService {
       take: Math.min(Math.max(limit, 1), 200),
       skip: Math.max(offset, 0),
     });
-    return members.map((m) => ({
-      userId: m.userId,
-      name: m.user ? displayName(m.user, `id ${m.userId}`) : null,
-      username: m.user?.username ?? null,
-      status: m.status,
-      subscribed: m.subscribed,
-      blacklisted: m.blacklisted,
-    }));
+    const pending = await this.members.listPendingUsernames(chatId);
+    return [
+      ...members.map((m) => ({
+        userId: m.userId,
+        name: m.user ? displayName(m.user, `id ${m.userId}`) : null,
+        username: m.user?.username ?? null,
+        status: m.status,
+        subscribed: m.subscribed,
+        blacklisted: m.blacklisted,
+      })),
+      // @username-участники, ещё не сопоставленные с Telegram id
+      ...pending.map((username) => ({
+        userId: null,
+        name: `@${username}`,
+        username,
+        status: 'pending',
+        subscribed: true,
+        blacklisted: false,
+      })),
+    ];
+  }
+
+  /** Добавляет участника по @username; member — если id уже известен боту. */
+  async addMemberByUsername(chatId: bigint, username: string) {
+    const result = await this.members.addByUsername(chatId, username);
+    this.logger.log(
+      `Admin added member @${username} to chat ${chatId} ` +
+        `(resolved=${result.resolved})`,
+    );
+    return result.resolved
+      ? { status: 'member', userId: result.member.userId }
+      : { status: 'pending', username: result.username };
+  }
+
+  /** Удаляет ещё не сопоставленную @username-запись. */
+  async removePendingMember(chatId: bigint, username: string) {
+    const removed = await this.members.removePendingByUsername(
+      chatId,
+      username,
+    );
+    if (!removed) throw new NotFoundException('Pending member not found');
+    return { status: 'removed', username };
   }
 
   /** Применяет частичное обновление настроек чата через доменные сеттеры. */

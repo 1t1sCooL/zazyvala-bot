@@ -7,14 +7,14 @@ describe('buildMentionMessage', () => {
     expect(entities).toHaveLength(0);
   });
 
-  it('builds correct offsets/lengths for multiple targets', () => {
+  it('separates targets with commas and builds correct offsets/lengths', () => {
     const targets: MentionTarget[] = [
       { userId: 1n, name: 'Иван' },
       { userId: 2n, name: 'Пётр' },
     ];
     const { text, entities } = buildMentionMessage(targets);
 
-    expect(text).toBe('Иван Пётр');
+    expect(text).toBe('Иван, Пётр');
     expect(entities).toHaveLength(2);
 
     // Первое упоминание с начала.
@@ -23,13 +23,27 @@ describe('buildMentionMessage', () => {
       offset: 0,
       length: 'Иван'.length,
     });
-    // Второе — после "Иван " (5 code units).
+    // Второе — после "Иван, " (6 code units).
     expect(entities[1]).toMatchObject({
       type: 'text_mention',
-      offset: 'Иван '.length,
+      offset: 'Иван, '.length,
       length: 'Пётр'.length,
     });
     expect((entities[1] as { user: { id: number } }).user.id).toBe(2);
+  });
+
+  it('mentions username-only targets via mention entity', () => {
+    const { text, entities } = buildMentionMessage([
+      { userId: 1n, name: 'Иван' },
+      { username: 'petrov' },
+    ]);
+
+    expect(text).toBe('Иван, @petrov');
+    expect(entities[1]).toEqual({
+      type: 'mention',
+      offset: 'Иван, '.length,
+      length: '@petrov'.length,
+    });
   });
 
   it('prepends a header and offsets account for it', () => {

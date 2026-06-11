@@ -1,18 +1,24 @@
 import type { MessageEntity } from 'telegraf/typings/core/types/typegram';
 
-export interface MentionTarget {
-  userId: bigint;
-  name: string;
-}
+/**
+ * Цель упоминания: пользователь с известным id (text_mention по имени)
+ * или добавленный по @username, чей id бот ещё не узнал (mention).
+ */
+export type MentionTarget =
+  | { userId: bigint; name: string }
+  | { username: string };
 
 export interface MentionMessage {
   text: string;
   entities: MessageEntity[];
 }
 
+const SEPARATOR = ', ';
+
 /**
- * Строит сообщение-зов с упоминаниями через text_mention.
- * text_mention работает для любого пользователя (даже без username).
+ * Строит сообщение-зов. Участники разделяются запятыми.
+ * - id-цели — text_mention (работает для любого пользователя, даже без username);
+ * - @username-цели — entity типа mention (Telegram уведомит владельца username).
  *
  * Важно: offset/length у Telegram считаются в UTF-16 code units.
  * JS-строки и есть UTF-16, поэтому String.length подходит напрямую.
@@ -24,23 +30,30 @@ export function buildMentionMessage(
   let text = header ? `${header}\n` : '';
   const entities: MessageEntity[] = [];
 
-  for (const target of targets) {
+  targets.forEach((target, i) => {
+    if (i > 0) text += SEPARATOR;
     const offset = text.length; // UTF-16 code units
-    const chunk = `${target.name} `;
-    text += chunk;
-    entities.push({
-      type: 'text_mention',
-      offset,
-      length: target.name.length,
-      user: {
-        id: Number(target.userId),
-        is_bot: false,
-        first_name: target.name,
-      },
-    });
-  }
 
-  return { text: text.trimEnd(), entities };
+    if ('userId' in target) {
+      text += target.name;
+      entities.push({
+        type: 'text_mention',
+        offset,
+        length: target.name.length,
+        user: {
+          id: Number(target.userId),
+          is_bot: false,
+          first_name: target.name,
+        },
+      });
+    } else {
+      const mention = `@${target.username}`;
+      text += mention;
+      entities.push({ type: 'mention', offset, length: mention.length });
+    }
+  });
+
+  return { text, entities };
 }
 
 /** Разбивает список на батчи фиксированного размера. */

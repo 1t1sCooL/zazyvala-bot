@@ -1,4 +1,5 @@
 import { AssistantsService } from '../assistants';
+import { MembersService } from '../members';
 import { SettingsService } from '../settings';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminService } from './admin.service';
@@ -25,6 +26,11 @@ describe('AdminService', () => {
     getForChat: jest.Mock;
   };
   let assistants: { listWithUsers: jest.Mock };
+  let members: {
+    listPendingUsernames: jest.Mock;
+    addByUsername: jest.Mock;
+    removePendingByUsername: jest.Mock;
+  };
   let service: AdminService;
 
   beforeEach(() => {
@@ -35,10 +41,16 @@ describe('AdminService', () => {
       getForChat: jest.fn().mockResolvedValue({ chatId: 1n }),
     };
     assistants = { listWithUsers: jest.fn().mockResolvedValue([]) };
+    members = {
+      listPendingUsernames: jest.fn().mockResolvedValue([]),
+      addByUsername: jest.fn(),
+      removePendingByUsername: jest.fn().mockResolvedValue(true),
+    };
     service = new AdminService(
       prisma as unknown as PrismaService,
       settings as unknown as SettingsService,
       assistants as unknown as AssistantsService,
+      members as unknown as MembersService,
     );
   });
 
@@ -85,5 +97,40 @@ describe('AdminService', () => {
     expect(settings.setCooldown).toHaveBeenCalledWith(1n, 120);
     expect(settings.setHeader).not.toHaveBeenCalled();
     expect(settings.getForChat).toHaveBeenCalledWith(1n);
+  });
+
+  it('addMemberByUsername maps resolved and pending results', async () => {
+    members.addByUsername.mockResolvedValue({
+      resolved: true,
+      member: { userId: 20n },
+    });
+    expect(await service.addMemberByUsername(1n, '@petrov')).toEqual({
+      status: 'member',
+      userId: 20n,
+    });
+
+    members.addByUsername.mockResolvedValue({
+      resolved: false,
+      username: 'ghost',
+    });
+    expect(await service.addMemberByUsername(1n, 'ghost')).toEqual({
+      status: 'pending',
+      username: 'ghost',
+    });
+  });
+
+  it('listMembers appends pending usernames', async () => {
+    members.listPendingUsernames.mockResolvedValue(['ghost']);
+
+    const list = await service.listMembers(1n);
+
+    expect(list).toEqual([
+      expect.objectContaining({
+        userId: null,
+        name: '@ghost',
+        username: 'ghost',
+        status: 'pending',
+      }),
+    ]);
   });
 });
