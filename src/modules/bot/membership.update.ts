@@ -50,6 +50,34 @@ export class MembershipUpdate {
     this.logger.debug(`left_chat_member ${user.id} in chat ${chat.id}`);
   }
 
+  // При апгрейде группы до супергруппы Telegram меняет chat id; без переноса
+  // весь реестр участников остаётся под старым id и /call зовёт «никого».
+  @On('migrate_to_chat_id')
+  async onMigrateTo(@Ctx() ctx: Context): Promise<void> {
+    const chat = ctx.chat;
+    const message = ctx.message as { migrate_to_chat_id?: number } | undefined;
+    const newId = message?.migrate_to_chat_id;
+    if (!chat || !newId) return;
+
+    this.logger.log(`[FIX] migrate_to_chat_id: ${chat.id} -> ${newId}`);
+    await this.chats.migrateChat(BigInt(chat.id), BigInt(newId));
+  }
+
+  // Зеркальное сервисное сообщение в новой супергруппе (порядок доставки
+  // двух сообщений о миграции не гарантирован; migrateChat идемпотентен).
+  @On('migrate_from_chat_id')
+  async onMigrateFrom(@Ctx() ctx: Context): Promise<void> {
+    const chat = ctx.chat;
+    const message = ctx.message as
+      | { migrate_from_chat_id?: number }
+      | undefined;
+    const oldId = message?.migrate_from_chat_id;
+    if (!chat || !oldId) return;
+
+    this.logger.log(`[FIX] migrate_from_chat_id: ${oldId} -> ${chat.id}`);
+    await this.chats.migrateChat(BigInt(oldId), BigInt(chat.id));
+  }
+
   // Авто-регистрация по активности вынесена в сквозной middleware
   // (createActivityMiddleware), чтобы не блокировать цепочку команд.
 

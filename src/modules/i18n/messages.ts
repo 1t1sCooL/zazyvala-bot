@@ -21,6 +21,10 @@ export const messages: Record<string, Record<string, string>> = {
     call_empty_group:
       'В группе «{group}» пока никого. Вступить: /joingroup {group}',
     call_no_group: 'Такой группы нет. Список: /groups',
+    call_partial:
+      'Позвал {notified}, но ещё ~{missing} участников не в моём списке: ' +
+      'я вижу только тех, кто писал в чат при мне. ' +
+      'Пусть отправят /join или любое сообщение — и попадут в зов.',
     call_denied: 'Звать может: {policy}. Политику меняет админ: /callpolicy',
     lang_usage: 'Текущий язык: {lang}. Сменить: /setlang <ru | en>',
     lang_admin_only: 'Менять язык может только администратор чата.',
@@ -52,6 +56,10 @@ export const messages: Record<string, Record<string, string>> = {
       'Nobody to summon — ask members to send /join or just write in the chat.',
     call_empty_group: 'Group "{group}" is empty. Join it: /joingroup {group}',
     call_no_group: 'No such group. List: /groups',
+    call_partial:
+      'Summoned {notified}, but ~{missing} more members are not on my list: ' +
+      'I only see those who wrote in the chat while I was here. ' +
+      'Ask them to send /join or any message to be included.',
     call_denied:
       'Allowed to summon: {policy}. Admin changes it via /callpolicy',
     lang_usage: 'Current language: {lang}. Change: /setlang <ru | en>',

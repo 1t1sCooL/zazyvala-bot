@@ -10,9 +10,12 @@ import { sendWithRetry, sleep } from '../../shared/utils/telegram-retry';
 import { buildMentionMessage, chunk, MentionTarget } from './mention-builder';
 
 const INTER_BATCH_DELAY_MS = 1200;
+// Подсказка о неполном реестре показывается, когда позвали меньше этой доли
+// людей в чате (без учёта самого бота).
+const COVERAGE_HINT_RATIO = 0.9;
 
 export type SummonResult =
-  | { status: 'ok'; notified: number; batches: number }
+  | { status: 'ok'; notified: number; batches: number; missing?: number }
   | { status: 'cooldown'; retryAfterSec: number }
   | { status: 'empty' }
   | { status: 'no_group' };
@@ -40,11 +43,85 @@ export class SummonService {
     chatId: bigint,
     telegram: Telegram,
     customText?: string,
+    threadId?: number,
   ): Promise<SummonResult> {
     const settings = await this.settings.getForChat(chatId);
+    // Bot API не отдаёт список участников чата — реестр пополняется только по
+    // активности/событиям. Админов можно получить явно: подкачиваем их перед
+    // зовом, чтобы в свежедобавленном чате звать не одного инициатора.
+    await this.syncChatAdmins(chatId, telegram);
     const members = await this.members.listActiveSubscribed(chatId);
     const targets = members.map((m) => toTarget(m.user));
-    return this.dispatch(chatId, telegram, targets, settings, customText);
+    const result = await this.dispatch(
+      chatId,
+      telegram,
+      targets,
+      settings,
+      customText,
+      threadId,
+    );
+    if (result.status === 'ok') {
+      const missing = await this.coverageGap(chatId, telegram, result.notified);
+      if (missing > 0) return { ...result, missing };
+    }
+    return result;
+  }
+
+  /** Регистрирует администраторов чата в реестре (не трогая их подписку). */
+  private async syncChatAdmins(
+    chatId: bigint,
+    telegram: Telegram,
+  ): Promise<void> {
+    try {
+      const admins = await telegram.getChatAdministrators(Number(chatId));
+      for (const admin of admins) {
+        if (admin.user.is_bot) continue;
+        await this.members.registerMember(chatId, {
+          id: BigInt(admin.user.id),
+          username: admin.user.username,
+          firstName: admin.user.first_name,
+          lastName: admin.user.last_name,
+          isBot: admin.user.is_bot,
+        });
+      }
+      this.logger.debug(
+        `[FIX] Synced ${admins.length} chat admins into registry for chat ${chatId}`,
+      );
+    } catch (err) {
+      // Сбой подкачки не должен ломать зов — зовём тех, кто уже в реестре.
+      this.logger.warn(
+        `[FIX] Failed to sync chat admins for chat ${chatId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Сколько людей в чате не попало в зов (реестр неполный). 0 — если покрытие
+   * достаточное или счётчик участников недоступен.
+   */
+  private async coverageGap(
+    chatId: bigint,
+    telegram: Telegram,
+    notified: number,
+  ): Promise<number> {
+    try {
+      const total = await telegram.getChatMembersCount(Number(chatId));
+      const humans = total - 1; // не считаем самого бота
+      this.logger.log(
+        `[FIX] Summon coverage in chat ${chatId}: notified ${notified} of ~${humans}`,
+      );
+      if (humans <= 0 || notified >= humans * COVERAGE_HINT_RATIO) return 0;
+      return humans - notified;
+    } catch (err) {
+      this.logger.warn(
+        `[FIX] Failed to get member count for chat ${chatId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return 0;
+    }
   }
 
   /** Зовёт участников именованной группы тегов. */
@@ -53,6 +130,7 @@ export class SummonService {
     telegram: Telegram,
     groupName: string,
     customText?: string,
+    threadId?: number,
   ): Promise<SummonResult> {
     const members = await this.tagGroups.listMembersWithUsers(
       chatId,
@@ -65,7 +143,14 @@ export class SummonService {
       m.user ? toTarget(m.user) : { userId: m.userId, name: `id ${m.userId}` },
     );
     this.logger.debug(`Summoning group "${groupName}" in chat ${chatId}`);
-    return this.dispatch(chatId, telegram, targets, settings, customText);
+    return this.dispatch(
+      chatId,
+      telegram,
+      targets,
+      settings,
+      customText,
+      threadId,
+    );
   }
 
   /** Общее ядро: кулдаун → батчи → фиксация времени. */
@@ -75,6 +160,7 @@ export class SummonService {
     targets: MentionTarget[],
     settings: ChatSummonSettings,
     customText?: string,
+    threadId?: number,
   ): Promise<SummonResult> {
     const cooldown = this.checkCooldown(
       settings.lastSummonAt,
@@ -93,7 +179,8 @@ export class SummonService {
     const header = customText?.trim() || settings.header || undefined;
     const batches = chunk(targets, settings.mentionsPerBatch);
     this.logger.debug(
-      `Summoning ${targets.length} in chat ${chatId} (${batches.length} batches)`,
+      `[FIX] Summoning ${targets.length} in chat ${chatId} ` +
+        `(${batches.length} batches, topic=${threadId ?? '-'})`,
     );
 
     let notified = 0;
@@ -104,7 +191,13 @@ export class SummonService {
       );
       try {
         await sendWithRetry(() =>
-          telegram.sendMessage(Number(chatId), text, { entities }),
+          // В форум-чате (топики) без message_thread_id сообщение уходит в
+          // General — в корпоративных чатах он часто скрыт или закрыт,
+          // и зов «исчезает». Шлём в топик, где вызвали команду.
+          telegram.sendMessage(Number(chatId), text, {
+            entities,
+            message_thread_id: threadId,
+          }),
         );
         notified += batches[i].length;
       } catch (err) {

@@ -41,4 +41,40 @@ export class ChatsService {
     this.logger.debug(`Ensured chat ${input.id}`);
     return chat;
   }
+
+  /**
+   * Переносит чат на новый Telegram id при миграции group → supergroup.
+   * FK-связи (members, settings, assistants, tag groups) следуют за чатом
+   * каскадом (onUpdate: Cascade — дефолт Prisma). Идемпотентно: если старого
+   * чата нет, ничего не делает.
+   */
+  async migrateChat(oldId: bigint, newId: bigint): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const oldChat = await tx.chat.findUnique({ where: { id: oldId } });
+      if (!oldChat) {
+        this.logger.warn(
+          `[FIX] migrateChat: chat ${oldId} not found, nothing to migrate to ${newId}`,
+        );
+        return;
+      }
+
+      // Activity-middleware мог успеть создать «пустышку» под новым id
+      // (первое сообщение в супергруппе приходит раньше сервисного о миграции).
+      const stub = await tx.chat.findUnique({ where: { id: newId } });
+      if (stub) {
+        await tx.chat.delete({ where: { id: newId } });
+        this.logger.warn(
+          `[FIX] migrateChat: removed auto-created stub chat ${newId}`,
+        );
+      }
+
+      await tx.chat.update({
+        where: { id: oldId },
+        data: { id: newId, type: 'supergroup' },
+      });
+    });
+    this.logger.log(
+      `[FIX] migrateChat: chat ${oldId} migrated to ${newId}, member registry preserved`,
+    );
+  }
 }

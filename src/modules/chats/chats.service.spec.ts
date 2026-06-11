@@ -2,10 +2,20 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ChatsService } from './chats.service';
 
 function createPrismaMock() {
-  return {
-    chat: { upsert: jest.fn().mockResolvedValue({ id: 10n }) },
+  const prisma = {
+    chat: {
+      upsert: jest.fn().mockResolvedValue({ id: 10n }),
+      findUnique: jest.fn().mockResolvedValue(null),
+      update: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+    },
     chatSettings: { upsert: jest.fn().mockResolvedValue({}) },
+    $transaction: jest.fn(
+      async (cb: (tx: unknown) => Promise<unknown>): Promise<unknown> =>
+        cb(prisma),
+    ),
   };
+  return prisma;
 }
 
 describe('ChatsService', () => {
@@ -29,5 +39,44 @@ describe('ChatsService', () => {
         create: { chatId: 10n },
       }),
     );
+  });
+
+  describe('migrateChat', () => {
+    it('moves the chat to the new id (registry follows via FK cascade)', async () => {
+      prisma.chat.findUnique.mockImplementation(({ where }: never) =>
+        Promise.resolve(
+          (where as { id: bigint }).id === -10n ? { id: -10n } : null,
+        ),
+      );
+
+      await service.migrateChat(-10n, -100n);
+
+      expect(prisma.chat.delete).not.toHaveBeenCalled();
+      expect(prisma.chat.update).toHaveBeenCalledWith({
+        where: { id: -10n },
+        data: { id: -100n, type: 'supergroup' },
+      });
+    });
+
+    it('removes an auto-created stub under the new id before migrating', async () => {
+      prisma.chat.findUnique.mockResolvedValue({ id: 1n }); // и старый, и стаб
+
+      await service.migrateChat(-10n, -100n);
+
+      expect(prisma.chat.delete).toHaveBeenCalledWith({ where: { id: -100n } });
+      expect(prisma.chat.update).toHaveBeenCalledWith({
+        where: { id: -10n },
+        data: { id: -100n, type: 'supergroup' },
+      });
+    });
+
+    it('does nothing when the old chat is unknown', async () => {
+      prisma.chat.findUnique.mockResolvedValue(null);
+
+      await service.migrateChat(-10n, -100n);
+
+      expect(prisma.chat.update).not.toHaveBeenCalled();
+      expect(prisma.chat.delete).not.toHaveBeenCalled();
+    });
   });
 });

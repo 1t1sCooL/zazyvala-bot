@@ -58,6 +58,7 @@ export class SummonUpdate {
     }
 
     const args = extractArgs(ctx, 'call');
+    const threadId = extractThreadId(ctx);
 
     // Если первый токен — имя существующей группы, зовём её; остаток — текст.
     const [firstToken, ...rest] = args.split(/\s+/).filter(Boolean);
@@ -71,8 +72,14 @@ export class SummonUpdate {
           ctx.telegram,
           group.name,
           rest.join(' ') || undefined,
+          threadId,
         )
-      : await this.summon.callAll(chatId, ctx.telegram, args || undefined);
+      : await this.summon.callAll(
+          chatId,
+          ctx.telegram,
+          args || undefined,
+          threadId,
+        );
 
     this.logger.debug(
       `/call in chat ${chatId} (group=${group?.name ?? '-'}, status=${result.status})`,
@@ -95,7 +102,17 @@ export class SummonUpdate {
         await ctx.reply(t(lang, 'call_no_group'));
         break;
       case 'ok':
-        // Зов уже отправлен пачками — лишнего сообщения не добавляем.
+        // Зов уже отправлен пачками. Но если реестр покрывает не всех
+        // (бот не видит участников, которые не писали при нём), честно
+        // говорим об этом, иначе «/call позвал не всех» выглядит как баг.
+        if (!group && result.missing) {
+          await ctx.reply(
+            t(lang, 'call_partial', {
+              notified: result.notified,
+              missing: result.missing,
+            }),
+          );
+        }
         break;
     }
   }
@@ -145,4 +162,16 @@ function extractArgs(ctx: Context, command: string): string {
   const message = ctx.message as { text?: string } | undefined;
   const text = message?.text ?? '';
   return text.replace(new RegExp(`^/${command}(@\\w+)?\\s*`, 'i'), '').trim();
+}
+
+/**
+ * Топик форум-чата, из которого пришла команда. Как и getThreadId в Telegraf,
+ * учитывает message_thread_id только у топик-сообщений (is_topic_message),
+ * чтобы не принять обычный reply-тред за топик.
+ */
+function extractThreadId(ctx: Context): number | undefined {
+  const message = ctx.message as
+    | { is_topic_message?: boolean; message_thread_id?: number }
+    | undefined;
+  return message?.is_topic_message ? message.message_thread_id : undefined;
 }
