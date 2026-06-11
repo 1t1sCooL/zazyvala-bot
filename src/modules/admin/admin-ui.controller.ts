@@ -18,6 +18,9 @@ const PAGE = `<!doctype html>
   .card { border: 1px solid #ddd; border-radius: 8px; padding: .8rem 1rem; }
   .card b { font-size: 1.4rem; display: block; }
   .err { color: #c00; margin-top: .5rem; }
+  .members-cell { background: #fafafa; }
+  .members-cell table { margin: .3rem 0; }
+  .muted { color: #888; }
 </style>
 </head>
 <body>
@@ -48,6 +51,35 @@ const PAGE = `<!doctype html>
     return res.json();
   }
 
+  // Имена приходят из Telegram — экранируем перед вставкой в HTML.
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  // Разворачивает/сворачивает список участников чата под его строкой.
+  async function toggleMembers(chatId) {
+    const existing = document.getElementById('members-' + chatId);
+    if (existing) { existing.remove(); return; }
+    try {
+      const members = await api('/admin/chats/' + chatId + '/members?limit=200');
+      const tr = document.createElement('tr');
+      tr.id = 'members-' + chatId;
+      const rows = members.map(m =>
+        '<tr><td>' + esc(m.name) + '</td><td>' + (m.username ? '@' + esc(m.username) : '') +
+        '</td><td>' + esc(m.status) + '</td><td>' + (m.subscribed ? 'да' : 'нет') +
+        '</td><td>' + (m.blacklisted ? 'да' : '') + '</td></tr>'
+      ).join('');
+      tr.innerHTML = '<td colspan="7" class="members-cell">' + (members.length
+        ? '<table><thead><tr><th>Имя</th><th>Username</th><th>Статус</th><th>Подписан</th><th>Игнор</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        : '<span class="muted">Пока никого: участники появляются по активности в чате, /join или кнопке «+ участник».</span>') + '</td>';
+      document.getElementById('chat-' + chatId).after(tr);
+    } catch (e) {
+      alert('Не удалось загрузить участников: ' + e.message);
+    }
+  }
+
   // Добавление участника по @username: если бот уже знает его id — сразу
   // полноценный участник, иначе появится в зове как @username до первого
   // его сообщения.
@@ -62,7 +94,8 @@ const PAGE = `<!doctype html>
       alert(r.status === 'member'
         ? 'Добавлен как полноценный участник (id уже известен боту).'
         : 'Добавлен как @' + r.username + ' — до первого сообщения будет упоминаться по юзернейму.');
-      load();
+      await load();
+      await toggleMembers(chatId); // показать обновлённый список
     } catch (e) {
       alert('Не получилось: ' + e.message + ' (юзернейм: 5-32 символа, латиница/цифры/_)');
     }
@@ -80,8 +113,9 @@ const PAGE = `<!doctype html>
 
       const chats = await api('/admin/chats');
       document.querySelector('#chats tbody').innerHTML = chats.map(c =>
-        '<tr><td>' + c.id + '</td><td>' + (c.title || '') + '</td><td>' + (c.type || '') +
-        '</td><td>' + c.members + '</td><td>' + c.assistants + '</td><td>' + c.summonsTotal +
+        '<tr id="chat-' + c.id + '"><td>' + c.id + '</td><td>' + esc(c.title) + '</td><td>' + esc(c.type) +
+        '</td><td><a href="javascript:void(0)" onclick="toggleMembers(\\'' + c.id + '\\')">' + c.members + ' →</a>' +
+        '</td><td>' + c.assistants + '</td><td>' + c.summonsTotal +
         '</td><td><button onclick="addMember(\\'' + c.id + '\\')">+ участник</button></td></tr>'
       ).join('');
     } catch (e) {
