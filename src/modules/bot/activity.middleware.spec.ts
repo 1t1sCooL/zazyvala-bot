@@ -21,15 +21,20 @@ describe('createActivityMiddleware', () => {
     );
   }
 
-  it('registers the author in a group and calls next()', async () => {
+  it('registers the author in a group, persists the chat title, and calls next()', async () => {
     const next = jest.fn().mockResolvedValue(undefined);
     const ctx = {
-      chat: { id: -100, type: 'supergroup' },
+      chat: { id: -100, type: 'supergroup', title: 'Моя группа' },
       from: { id: 5, is_bot: false, first_name: 'Иван' },
     };
 
     await mw()(ctx as never, next);
 
+    expect(chats.ensureChat).toHaveBeenCalledWith({
+      id: -100n,
+      type: 'supergroup',
+      title: 'Моя группа',
+    });
     expect(members.registerMember).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledTimes(1);
   });

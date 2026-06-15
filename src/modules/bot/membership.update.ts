@@ -24,7 +24,11 @@ export class MembershipUpdate {
     const chat = ctx.chat;
     if (!chat) return;
 
-    await this.chats.ensureChat({ id: BigInt(chat.id), type: chat.type });
+    await this.chats.ensureChat({
+      id: BigInt(chat.id),
+      type: chat.type,
+      title: 'title' in chat ? chat.title : undefined,
+    });
 
     const message = ctx.message as { new_chat_members?: TgUser[] } | undefined;
     const newMembers = message?.new_chat_members ?? [];
@@ -87,7 +91,11 @@ export class MembershipUpdate {
     const chat = ctx.chat!;
     const from = ctx.from;
 
-    await this.chats.ensureChat({ id: BigInt(chat.id), type: chat.type });
+    await this.chats.ensureChat({
+      id: BigInt(chat.id),
+      type: chat.type,
+      title: 'title' in chat ? chat.title : undefined,
+    });
     await this.members.setSubscribed(BigInt(chat.id), toUserInput(from), true);
     this.logger.debug(`/join ${from.id} in chat ${chat.id}`);
     await ctx.reply('Готово! Теперь я буду звать тебя. Отписаться — /leave');

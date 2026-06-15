@@ -26,7 +26,11 @@ export function createActivityMiddleware(
 
     if (chat && from && !from.is_bot && isGroup) {
       try {
-        await chats.ensureChat({ id: BigInt(chat.id), type: chat.type });
+        await chats.ensureChat({
+          id: BigInt(chat.id),
+          type: chat.type,
+          title: 'title' in chat ? chat.title : undefined,
+        });
         await members.registerMember(BigInt(chat.id), fromUserInput(from));
       } catch (err) {
         logger.error(
