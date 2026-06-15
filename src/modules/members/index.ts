@@ -5,4 +5,6 @@ export type {
   EnsureUserInput,
   ChatMemberWithUser,
   AddByUsernameResult,
+  MemberMutationResult,
+  MemberFlagsPatch,
 } from './members.service';

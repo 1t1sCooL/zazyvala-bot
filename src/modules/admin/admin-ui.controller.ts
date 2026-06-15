@@ -66,13 +66,26 @@ const PAGE = `<!doctype html>
       const members = await api('/admin/chats/' + chatId + '/members?limit=200');
       const tr = document.createElement('tr');
       tr.id = 'members-' + chatId;
-      const rows = members.map(m =>
-        '<tr><td>' + esc(m.name) + '</td><td>' + (m.username ? '@' + esc(m.username) : '') +
-        '</td><td>' + esc(m.status) + '</td><td>' + (m.subscribed ? 'да' : 'нет') +
-        '</td><td>' + (m.blacklisted ? 'да' : '') + '</td></tr>'
-      ).join('');
+      const rows = members.map(m => {
+        // pending (@username без id) нельзя редактировать по флагам — только удалить.
+        const pending = m.userId == null;
+        const sub = pending
+          ? (m.subscribed ? 'да' : 'нет')
+          : '<input type="checkbox" ' + (m.subscribed ? 'checked' : '') +
+            ' onchange="setMemberFlag(\\'' + chatId + '\\', \\'' + m.userId + '\\', \\'subscribed\\', this.checked)" />';
+        const blk = pending
+          ? ''
+          : '<input type="checkbox" ' + (m.blacklisted ? 'checked' : '') +
+            ' onchange="setMemberFlag(\\'' + chatId + '\\', \\'' + m.userId + '\\', \\'blacklisted\\', this.checked)" />';
+        const act = pending
+          ? '<button onclick="removePending(\\'' + chatId + '\\', \\'' + esc(m.username) + '\\')">✕ удалить</button>'
+          : '<button onclick="removeMember(\\'' + chatId + '\\', \\'' + m.userId + '\\')">✕ удалить</button>';
+        return '<tr><td>' + esc(m.name) + '</td><td>' + (m.username ? '@' + esc(m.username) : '') +
+          '</td><td>' + esc(m.status) + '</td><td>' + sub +
+          '</td><td>' + blk + '</td><td>' + act + '</td></tr>';
+      }).join('');
       tr.innerHTML = '<td colspan="7" class="members-cell">' + (members.length
-        ? '<table><thead><tr><th>Имя</th><th>Username</th><th>Статус</th><th>Подписан</th><th>Игнор</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        ? '<table><thead><tr><th>Имя</th><th>Username</th><th>Статус</th><th>Подписан</th><th>Игнор</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table>'
         : '<span class="muted">Пока никого: участники появляются по активности в чате, /join или кнопке «+ участник».</span>') + '</td>';
       document.getElementById('chat-' + chatId).after(tr);
     } catch (e) {
@@ -98,6 +111,46 @@ const PAGE = `<!doctype html>
       await toggleMembers(chatId); // показать обновлённый список
     } catch (e) {
       alert('Не получилось: ' + e.message + ' (юзернейм: 5-32 символа, латиница/цифры/_)');
+    }
+  }
+
+  // Переключает флаг участника (subscribed/blacklisted) по чекбоксу.
+  async function setMemberFlag(chatId, userId, field, value) {
+    try {
+      const body = {};
+      body[field] = value;
+      await api('/admin/chats/' + chatId + '/members/' + userId, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      alert('Не удалось обновить участника: ' + e.message);
+      await load();
+      await toggleMembers(chatId); // вернуть актуальное состояние чекбоксов
+    }
+  }
+
+  // Жёстко удаляет участника из чата.
+  async function removeMember(chatId, userId) {
+    if (!confirm('Удалить участника из чата?')) return;
+    try {
+      await api('/admin/chats/' + chatId + '/members/' + userId, { method: 'DELETE' });
+      await load();
+      await toggleMembers(chatId);
+    } catch (e) {
+      alert('Не удалось удалить: ' + e.message);
+    }
+  }
+
+  // Удаляет ещё не сопоставленную @username-запись.
+  async function removePending(chatId, username) {
+    if (!confirm('Удалить @' + username + ' из списка?')) return;
+    try {
+      await api('/admin/chats/' + chatId + '/members/pending/' + encodeURIComponent(username), { method: 'DELETE' });
+      await load();
+      await toggleMembers(chatId);
+    } catch (e) {
+      alert('Не удалось удалить: ' + e.message);
     }
   }
 

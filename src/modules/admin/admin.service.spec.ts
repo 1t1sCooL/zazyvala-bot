@@ -30,6 +30,8 @@ describe('AdminService', () => {
     listPendingUsernames: jest.Mock;
     addByUsername: jest.Mock;
     removePendingByUsername: jest.Mock;
+    updateMemberFlags: jest.Mock;
+    removeMember: jest.Mock;
   };
   let service: AdminService;
 
@@ -45,6 +47,8 @@ describe('AdminService', () => {
       listPendingUsernames: jest.fn().mockResolvedValue([]),
       addByUsername: jest.fn(),
       removePendingByUsername: jest.fn().mockResolvedValue(true),
+      updateMemberFlags: jest.fn().mockResolvedValue({ status: 'ok' }),
+      removeMember: jest.fn().mockResolvedValue({ status: 'ok' }),
     };
     service = new AdminService(
       prisma as unknown as PrismaService,
@@ -132,5 +136,42 @@ describe('AdminService', () => {
         status: 'pending',
       }),
     ]);
+  });
+
+  it('updateMember forwards flags and returns a string userId', async () => {
+    members.updateMemberFlags.mockResolvedValue({ status: 'ok' });
+
+    const res = await service.updateMember(1n, 20n, { subscribed: false });
+
+    expect(members.updateMemberFlags).toHaveBeenCalledWith(1n, 20n, {
+      subscribed: false,
+      blacklisted: undefined,
+    });
+    expect(res).toEqual({ status: 'updated', userId: '20' });
+  });
+
+  it('updateMember throws NotFoundException when the member is absent', async () => {
+    members.updateMemberFlags.mockResolvedValue({ status: 'not_found' });
+
+    await expect(
+      service.updateMember(1n, 20n, { blacklisted: true }),
+    ).rejects.toThrow('Member not found');
+  });
+
+  it('removeMember returns a removed status with a string userId', async () => {
+    members.removeMember.mockResolvedValue({ status: 'ok' });
+
+    const res = await service.removeMember(1n, 20n);
+
+    expect(members.removeMember).toHaveBeenCalledWith(1n, 20n);
+    expect(res).toEqual({ status: 'removed', userId: '20' });
+  });
+
+  it('removeMember throws NotFoundException when the member is absent', async () => {
+    members.removeMember.mockResolvedValue({ status: 'not_found' });
+
+    await expect(service.removeMember(1n, 20n)).rejects.toThrow(
+      'Member not found',
+    );
   });
 });

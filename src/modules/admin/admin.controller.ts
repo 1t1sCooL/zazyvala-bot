@@ -11,7 +11,12 @@ import {
 } from '@nestjs/common';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { AdminService } from './admin.service';
-import { AddAssistantDto, AddMemberDto, UpdateSettingsDto } from './dto';
+import {
+  AddAssistantDto,
+  AddMemberDto,
+  UpdateMemberDto,
+  UpdateSettingsDto,
+} from './dto';
 
 @Controller('admin')
 @UseGuards(AdminAuthGuard)
@@ -57,6 +62,21 @@ export class AdminController {
     @Param('username') username: string,
   ) {
     return this.admin.removePendingMember(BigInt(id), username);
+  }
+
+  // Статический сегмент `pending` выше имеет приоритет — конфликта с :userId нет.
+  @Patch('chats/:id/members/:userId')
+  updateMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateMemberDto,
+  ) {
+    return this.admin.updateMember(BigInt(id), BigInt(userId), dto);
+  }
+
+  @Delete('chats/:id/members/:userId')
+  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.admin.removeMember(BigInt(id), BigInt(userId));
   }
 
   @Patch('chats/:id/settings')

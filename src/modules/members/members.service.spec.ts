@@ -10,6 +10,8 @@ function createPrismaMock() {
     chatMember: {
       upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      count: jest.fn().mockResolvedValue(1),
       findMany: jest.fn().mockResolvedValue([]),
     },
     pendingMember: {
@@ -182,5 +184,85 @@ describe('MembersService', () => {
         create: expect.objectContaining({ blacklisted: true }),
       }),
     );
+  });
+
+  describe('updateMemberFlags', () => {
+    it('writes only provided flags and does not upsert', async () => {
+      prisma.chatMember.updateMany.mockResolvedValue({ count: 1 });
+
+      const res = await service.updateMemberFlags(10n, 20n, {
+        subscribed: false,
+      });
+
+      expect(res).toEqual({ status: 'ok' });
+      expect(prisma.chatMember.updateMany).toHaveBeenCalledWith({
+        where: { chatId: 10n, userId: 20n },
+        data: { subscribed: false },
+      });
+      expect(prisma.chatMember.upsert).not.toHaveBeenCalled();
+    });
+
+    it('writes both flags when both are provided', async () => {
+      prisma.chatMember.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.updateMemberFlags(10n, 20n, {
+        subscribed: true,
+        blacklisted: true,
+      });
+
+      expect(prisma.chatMember.updateMany).toHaveBeenCalledWith({
+        where: { chatId: 10n, userId: 20n },
+        data: { subscribed: true, blacklisted: true },
+      });
+    });
+
+    it('reports not_found when no membership was updated', async () => {
+      prisma.chatMember.updateMany.mockResolvedValue({ count: 0 });
+
+      expect(
+        await service.updateMemberFlags(10n, 20n, { blacklisted: true }),
+      ).toEqual({ status: 'not_found' });
+    });
+
+    it('checks existence instead of writing on an empty patch', async () => {
+      prisma.chatMember.count.mockResolvedValue(1);
+
+      const res = await service.updateMemberFlags(10n, 20n, {});
+
+      expect(res).toEqual({ status: 'ok' });
+      expect(prisma.chatMember.updateMany).not.toHaveBeenCalled();
+      expect(prisma.chatMember.count).toHaveBeenCalledWith({
+        where: { chatId: 10n, userId: 20n },
+      });
+    });
+
+    it('reports not_found on an empty patch for an absent member', async () => {
+      prisma.chatMember.count.mockResolvedValue(0);
+
+      expect(await service.updateMemberFlags(10n, 20n, {})).toEqual({
+        status: 'not_found',
+      });
+    });
+  });
+
+  describe('removeMember', () => {
+    it('hard-deletes the membership row', async () => {
+      prisma.chatMember.deleteMany.mockResolvedValue({ count: 1 });
+
+      const res = await service.removeMember(10n, 20n);
+
+      expect(res).toEqual({ status: 'ok' });
+      expect(prisma.chatMember.deleteMany).toHaveBeenCalledWith({
+        where: { chatId: 10n, userId: 20n },
+      });
+    });
+
+    it('reports not_found when nothing was deleted', async () => {
+      prisma.chatMember.deleteMany.mockResolvedValue({ count: 0 });
+
+      expect(await service.removeMember(10n, 20n)).toEqual({
+        status: 'not_found',
+      });
+    });
   });
 });

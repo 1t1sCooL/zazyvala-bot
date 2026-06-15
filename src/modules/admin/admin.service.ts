@@ -4,7 +4,7 @@ import { displayName } from '../../shared/utils/display-name';
 import { AssistantsService } from '../assistants';
 import { MembersService } from '../members';
 import { SettingsService } from '../settings';
-import { UpdateSettingsDto } from './dto';
+import { UpdateMemberDto, UpdateSettingsDto } from './dto';
 
 export interface AdminStats {
   chats: number;
@@ -131,6 +131,30 @@ export class AdminService {
     return result.resolved
       ? { status: 'member', userId: result.member.userId }
       : { status: 'pending', username: result.username };
+  }
+
+  /** Правит флаги участника (подписка/blacklist) по userId. */
+  async updateMember(chatId: bigint, userId: bigint, dto: UpdateMemberDto) {
+    const res = await this.members.updateMemberFlags(chatId, userId, {
+      subscribed: dto.subscribed,
+      blacklisted: dto.blacklisted,
+    });
+    if (res.status === 'not_found') {
+      throw new NotFoundException('Member not found');
+    }
+    this.logger.log(`Admin updated member ${userId} in chat ${chatId}`);
+    // userId — BigInt, не сериализуется в JSON напрямую → строкой.
+    return { status: 'updated', userId: userId.toString() };
+  }
+
+  /** Жёстко удаляет участника из реестра чата по userId. */
+  async removeMember(chatId: bigint, userId: bigint) {
+    const res = await this.members.removeMember(chatId, userId);
+    if (res.status === 'not_found') {
+      throw new NotFoundException('Member not found');
+    }
+    this.logger.log(`Admin removed member ${userId} from chat ${chatId}`);
+    return { status: 'removed', userId: userId.toString() };
   }
 
   /** Удаляет ещё не сопоставленную @username-запись. */

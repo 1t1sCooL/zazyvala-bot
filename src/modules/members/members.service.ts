@@ -16,6 +16,15 @@ export type AddByUsernameResult =
   | { resolved: true; member: ChatMember }
   | { resolved: false; username: string };
 
+/** Результат мутации существующего участника (правка флагов/удаление). */
+export type MemberMutationResult = { status: 'ok' | 'not_found' };
+
+/** Частичная правка флагов участника из админки. */
+export interface MemberFlagsPatch {
+  subscribed?: boolean;
+  blacklisted?: boolean;
+}
+
 /** Нормализует @username: без @, в нижнем регистре. null — если невалидный. */
 export function normalizeUsername(raw: string): string | null {
   const username = raw.trim().replace(/^@/, '').toLowerCase();
@@ -204,6 +213,53 @@ export class MembersService {
       },
       include: { user: true },
     });
+  }
+
+  /**
+   * Частично правит флаги УЖЕ существующего участника (из админки): подписка
+   * на зов и/или blacklist. В отличие от setSubscribed/setBlacklisted не делает
+   * upsert — несуществующего участника не создаёт, а возвращает not_found.
+   */
+  async updateMemberFlags(
+    chatId: bigint,
+    userId: bigint,
+    patch: MemberFlagsPatch,
+  ): Promise<MemberMutationResult> {
+    const data: MemberFlagsPatch = {};
+    if (patch.subscribed !== undefined) data.subscribed = patch.subscribed;
+    if (patch.blacklisted !== undefined) data.blacklisted = patch.blacklisted;
+
+    // Нечего менять — просто сообщаем, существует ли участник.
+    if (Object.keys(data).length === 0) {
+      const exists = await this.prisma.chatMember.count({
+        where: { chatId, userId },
+      });
+      return { status: exists > 0 ? 'ok' : 'not_found' };
+    }
+
+    const res = await this.prisma.chatMember.updateMany({
+      where: { chatId, userId },
+      data,
+    });
+    this.logger.debug(
+      `Updated member ${userId} flags in chat ${chatId}: ` +
+        `${JSON.stringify(data)} (count ${res.count})`,
+    );
+    return { status: res.count > 0 ? 'ok' : 'not_found' };
+  }
+
+  /** Жёстко удаляет участника из реестра чата (правка из админки). */
+  async removeMember(
+    chatId: bigint,
+    userId: bigint,
+  ): Promise<MemberMutationResult> {
+    const res = await this.prisma.chatMember.deleteMany({
+      where: { chatId, userId },
+    });
+    this.logger.log(
+      `Removed member ${userId} from chat ${chatId} (count ${res.count})`,
+    );
+    return { status: res.count > 0 ? 'ok' : 'not_found' };
   }
 
   /** Включает/выключает исключение участника из зова (blacklist). */

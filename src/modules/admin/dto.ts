@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -50,4 +51,14 @@ export class AddMemberDto {
     message: 'username must be 5-32 chars: latin letters, digits, underscore',
   })
   username!: string;
+}
+
+export class UpdateMemberDto {
+  @IsOptional()
+  @IsBoolean()
+  subscribed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  blacklisted?: boolean;
 }
