@@ -14,6 +14,7 @@ import { createActivityMiddleware } from './activity.middleware';
 import { createCommandGateMiddleware } from './command-gate.middleware';
 import { CommandRegistry, CommandRegistryModule } from './command-registry';
 import { BotCommandsService } from './bot-commands.service';
+import { ChatTitleBackfillService } from './chat-title-backfill.service';
 import { AssistantsUpdate } from './assistants.update';
 import { BotUpdate } from './bot.update';
 import { MembershipUpdate } from './membership.update';
@@ -83,6 +84,7 @@ import { TagGroupsUpdate } from './tag-groups.update';
   ],
   providers: [
     BotCommandsService,
+    ChatTitleBackfillService,
     BotUpdate,
     MembershipUpdate,
     SummonUpdate,

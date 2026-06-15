@@ -6,7 +6,9 @@ function createPrismaMock() {
     chat: {
       upsert: jest.fn().mockResolvedValue({ id: 10n }),
       findUnique: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       delete: jest.fn().mockResolvedValue({}),
     },
     chatSettings: { upsert: jest.fn().mockResolvedValue({}) },
@@ -77,6 +79,27 @@ describe('ChatsService', () => {
 
       expect(prisma.chat.update).not.toHaveBeenCalled();
       expect(prisma.chat.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('title backfill helpers', () => {
+    it('listIdsWithoutTitle returns ids of chats with null/empty title', async () => {
+      prisma.chat.findMany.mockResolvedValue([{ id: -10n }, { id: -20n }]);
+
+      expect(await service.listIdsWithoutTitle()).toEqual([-10n, -20n]);
+      expect(prisma.chat.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ title: null }, { title: '' }] },
+        select: { id: true },
+      });
+    });
+
+    it('setTitle updates the chat title', async () => {
+      await service.setTitle(-10n, 'Моя группа');
+
+      expect(prisma.chat.updateMany).toHaveBeenCalledWith({
+        where: { id: -10n },
+        data: { title: 'Моя группа' },
+      });
     });
   });
 });

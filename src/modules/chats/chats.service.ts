@@ -42,6 +42,21 @@ export class ChatsService {
     return chat;
   }
 
+  /** Telegram id чатов без сохранённого названия — вход для бэкфилла title. */
+  async listIdsWithoutTitle(): Promise<bigint[]> {
+    const rows = await this.prisma.chat.findMany({
+      where: { OR: [{ title: null }, { title: '' }] },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  /** Проставляет название существующему чату (бэкфилл из getChat). */
+  async setTitle(id: bigint, title: string): Promise<void> {
+    await this.prisma.chat.updateMany({ where: { id }, data: { title } });
+    this.logger.debug(`Set title for chat ${id}: ${title}`);
+  }
+
   /**
    * Переносит чат на новый Telegram id при миграции group → supergroup.
    * FK-связи (members, settings, assistants, tag groups) следуют за чатом
