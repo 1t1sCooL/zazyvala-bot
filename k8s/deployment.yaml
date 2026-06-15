@@ -3,6 +3,12 @@ kind: Deployment
 metadata:
   name: zazyvala-bot
   namespace: default
+  annotations:
+    # Keel auto-deploy: при появлении нового образа :latest в GHCR Keel
+    # сам обновляет деплоймент (опрос раз в минуту). Kubeconfig в CI не нужен.
+    keel.sh/policy: force
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 1m"
 spec:
   # Один инстанс: long polling нельзя запускать в нескольких репликах
   # (Telegram отдаёт getUpdates только одному потребителю).
@@ -19,7 +25,7 @@ spec:
     spec:
       containers:
         - name: zazyvala-bot
-          image: ghcr.io/1t1scool/zazyvala-bot:IMAGE_TAG
+          image: ghcr.io/1t1scool/zazyvala-bot:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
